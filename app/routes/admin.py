@@ -29,7 +29,7 @@ def products():
             return redirect(url_for("admin.products"))
         slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
         if Product.query.filter_by(slug=slug).first(): slug += "-" + __import__("secrets").token_hex(2)
-        product = Product(name=name, slug=slug, category_id=request.form.get("category_id", type=int) or None, sku=request.form.get("sku") or None, short_description=request.form.get("short_description"), description=request.form.get("description"), price=request.form.get("price", type=float) or 0, compare_at_price=request.form.get("compare_at_price", type=float), material=request.form.get("material"), colour=request.form.get("colour"), dimensions=request.form.get("dimensions"), finish=request.form.get("finish"), stock=request.form.get("stock", type=int) or 0, featured=bool(request.form.get("featured")), is_new=bool(request.form.get("is_new")), image_url=request.form.get("image_url") or None)
+        product = Product(name=name, slug=slug, category_id=request.form.get("category_id", type=int) or None, sku=request.form.get("sku") or None, brand=request.form.get("brand"), short_description=request.form.get("short_description"), description=request.form.get("description"), price=request.form.get("price", type=float) or 0, compare_at_price=request.form.get("compare_at_price", type=float), material=request.form.get("material"), colour=request.form.get("colour"), dimensions=request.form.get("dimensions"), finish=request.form.get("finish"), stock=request.form.get("stock", type=int) or 0, featured=bool(request.form.get("featured")), is_new=bool(request.form.get("is_new")), image_url=request.form.get("image_url") or None)
         db.session.add(product)
         db.session.flush()
         for upload in request.files.getlist("images"):
@@ -45,6 +45,39 @@ def products():
         flash("Furniture product created.", "success")
         return redirect(url_for("admin.products"))
     return render_template("admin/products.html", products=Product.query.order_by(Product.created_at.desc()).all(), categories=Category.query.order_by(Category.name).all())
+
+@bp.route("/products/<int:product_id>/edit", methods=["GET", "POST"])
+def edit_product(product_id):
+    product = Product.query.get_or_404(product_id)
+    if request.method == "POST":
+        product.name = request.form.get("name", "").strip() or product.name
+        product.category_id = request.form.get("category_id", type=int) or None
+        product.sku = request.form.get("sku") or None
+        product.brand = request.form.get("brand")
+        product.short_description = request.form.get("short_description")
+        product.description = request.form.get("description")
+        product.price = request.form.get("price", type=float) or 0
+        product.compare_at_price = request.form.get("compare_at_price", type=float)
+        product.material = request.form.get("material")
+        product.colour = request.form.get("colour")
+        product.dimensions = request.form.get("dimensions")
+        product.finish = request.form.get("finish")
+        product.stock = max(0, request.form.get("stock", type=int) or 0)
+        product.featured = bool(request.form.get("featured"))
+        product.is_new = bool(request.form.get("is_new"))
+        product.image_url = request.form.get("image_url") or None
+        for upload in request.files.getlist("images"):
+            if upload and upload.filename:
+                data, mime = upload.read(), upload.mimetype or ""
+                if mime not in {"image/jpeg", "image/png", "image/webp"} or len(data) > 8 * 1024 * 1024:
+                    db.session.rollback()
+                    flash("Use JPG, PNG or WebP images under 8 MB.", "warning")
+                    return redirect(url_for("admin.edit_product", product_id=product.id))
+                db.session.add(ProductImage(product_id=product.id, image_data=data, mime_type=mime, alt_text=product.name))
+        db.session.commit()
+        flash("Product updated.", "success")
+        return redirect(url_for("admin.products"))
+    return render_template("admin/product_edit.html", product=product, categories=Category.query.order_by(Category.name).all())
 
 @bp.post("/products/<int:product_id>/toggle")
 def toggle_product(product_id):
