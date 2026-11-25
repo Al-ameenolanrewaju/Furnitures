@@ -1,15 +1,24 @@
 {% set cover_image = product.images|first %}
-<article class="product-card luxury-product-card" data-product-card>
+<article class="product-card luxury-product-card" data-product-card
+  data-product-id="{{ product.id }}" data-product-slug="{{ product.slug }}"
+  data-product-name="{{ product.name }}" data-product-price="{{ product.price }}"
+  data-product-description="{{ product.description or '' }}"
+  data-product-category="{{ product.category.name if product.category else '' }}"
+  data-category-name="{{ product.category.name if product.category else '' }}">
   <div class="product-photo">
     <a class="product-card-image-link" href="{{ url_for('storefront.product_detail', slug=product.slug) }}" aria-label="View {{ product.name }}">
       {% if cover_image %}<img src="{{ cover_image.url }}" alt="{{ cover_image.alt_text or product.name }}" loading="lazy" decoding="async">
       {% else %}<div class="fashion-placeholder"><span>Photo coming soon</span></div>{% endif %}
     </a>
+    <button type="button" class="product-favourite wishlist-toggle" data-wishlist-toggle aria-pressed="false" aria-label="Save {{ product.name }} to wishlist">♡</button>
   </div>
   <div class="luxury-product-info">
     {% if product.category %}<p class="eyebrow">{{ product.category.name }}</p>{% endif %}
     <a class="product-card-title-link" href="{{ url_for('storefront.product_detail', slug=product.slug) }}"><h3>{{ product.name }}</h3></a>
     <p class="luxury-price">₦{{ "{:,.0f}".format(product.price) }}</p>
-    <a class="product-whatsapp-button" href="{{ url_for('storefront.product_detail', slug=product.slug) }}">View details <span aria-hidden="true">→</span></a>
+    <div class="product-card-actions">
+      <button type="button" class="product-whatsapp-button add-to-cart-button" data-add-to-cart aria-pressed="false">Add to Cart</button>
+      <a class="product-whatsapp-button" href="{{ url_for('storefront.product_detail', slug=product.slug) }}">View details <span aria-hidden="true">→</span></a>
+    </div>
   </div>
 </article>
