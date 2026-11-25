@@ -81,8 +81,7 @@ def home():
     products = public_products(business).order_by(func.random()).limit(4).all()
     settings, categories = storefront_context(business)
     return render_template(
-        "storefront/home.html", business=business, featured=products,
-        settings=settings, categories=categories,
+        "storefront/cart.html", business=business, settings=settings, categories=categories,
     )
 
 
