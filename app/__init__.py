@@ -69,8 +69,6 @@ def create_app(config_object=None):
         owner_name = os.getenv("STORE_OWNER_NAME", "Prototype Owner").strip()
         owner_email = os.getenv("STORE_OWNER_EMAIL", "prototype-owner@example.com").strip().lower()
         owner_password = os.getenv("STORE_OWNER_PASSWORD", "")
-        if not owner_password or len(owner_password) < 12:
-            raise RuntimeError("Set STORE_OWNER_PASSWORD to a unique password of at least 12 characters.")
 
         business = models.Business.query.filter_by(slug=store_slug).first()
         if business is None:
@@ -80,14 +78,19 @@ def create_app(config_object=None):
             db.session.add(business)
             db.session.flush()
 
+        # The public demo catalogue must not depend on an admin password being
+        # configured in Render. Create an owner only when valid credentials
+        # have explicitly been supplied.
         owner = models.User.query.filter_by(email=owner_email).first()
-        if owner is None:
+        if owner is not None and owner.business_id != business.id:
+            raise RuntimeError("Preview owner email is assigned to another account.")
+        if owner is None and owner_password:
+            if len(owner_password) < 12:
+                raise RuntimeError("STORE_OWNER_PASSWORD must contain at least 12 characters.")
             owner = models.User(business_id=business.id, name=owner_name,
                 email=owner_email, role="OWNER", active=True)
             owner.set_password(owner_password)
             db.session.add(owner)
-        elif owner.business_id != business.id:
-            raise RuntimeError("Preview owner email is assigned to another account.")
 
         if not models.StoreSettings.query.filter_by(business_id=business.id).first():
             db.session.add(models.StoreSettings(business_id=business.id,
