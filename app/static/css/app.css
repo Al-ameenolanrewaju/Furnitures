@@ -43,3 +43,34 @@ body.storefront-body{background:var(--paper);color:var(--ink)}
 .reference-footer .footer-bottom{border-top:1px solid #59473d;padding:15px 10px 0;margin:0;display:flex;justify-content:space-between;gap:15px;font:12px var(--sans);color:#c7b9ae}
 .reference-footer .footer-bottom a{color:#c7b9ae;text-decoration:none}
 @media(max-width:700px){.site-footer.reference-footer{padding:35px 18px 15px}.reference-footer .footer-brand-row{align-items:flex-start;flex-direction:column;gap:17px}.reference-footer .footer-wordmark{font-size:43px}.reference-footer .footer-social{gap:10px}.reference-footer .footer-social span{width:46px;height:46px}.reference-footer .footer-divider{margin:28px 0 25px}.reference-footer .footer-columns{grid-template-columns:1fr;gap:26px;padding-bottom:18px}.reference-footer .footer-columns h4{font-size:16px;margin-bottom:12px}.reference-footer .footer-about p,.reference-footer .footer-links a{font-size:14px;margin-bottom:8px}.reference-footer .footer-bottom{padding:14px 9px 0;font-size:11px;flex-wrap:wrap}}
+
+/* Featured product cards — approved catalogue prototype */
+.featured-section .product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:30px 22px}
+.featured-section .product-card{border:1px solid #e8dfd6;border-radius:18px;overflow:hidden;background:#fbf8f4;padding-bottom:0}
+.featured-section .product-photo-wrap{position:relative}
+.featured-section .product-photo{height:auto;aspect-ratio:1.18;border-radius:17px 17px 0 0}
+.featured-section .product-photo img{object-position:center}
+.featured-section .product-tag{top:15px;left:15px;padding:8px 13px;border-radius:7px;background:#fbf8f1;font-size:9px;color:#352419}
+.featured-section .photo-wishlist{position:absolute;right:14px;top:14px}
+.featured-section .photo-wishlist .icon-button{width:43px;height:43px;border-radius:50%;background:#fffdf9;color:#201711;display:grid;place-items:center;font-size:25px;line-height:1;box-shadow:0 2px 8px #24170d18}
+.featured-section .product-meta{padding:15px 18px 17px;display:block}
+.featured-section .product-category{font-size:9px;color:#765033;letter-spacing:.12em}
+.featured-section .product-meta h3{font:500 clamp(18px,2vw,25px)/1.25 var(--serif);margin:5px 0 7px}
+.featured-section .product-meta p{font-size:13px;color:#77716b}
+.featured-section .product-price-row{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.featured-section .product-price-row>strong{font-size:clamp(16px,1.8vw,22px);color:#17120f}
+.featured-section .quick-add-icon{width:48px;height:48px;border:0;border-radius:13px;background:#4b2615;color:#fff;font-size:25px;cursor:pointer;display:grid;place-items:center}
+.featured-section .quick-add-icon:hover{background:#2e180e}
+@media(max-width:760px){
+.featured-section .product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 12px}
+.featured-section .product-card{border-radius:15px}
+.featured-section .product-photo{aspect-ratio:1.02;border-radius:14px 14px 0 0}
+.featured-section .product-tag{top:10px;left:10px;padding:7px 9px;font-size:7px}
+.featured-section .photo-wishlist{right:9px;top:9px}
+.featured-section .photo-wishlist .icon-button{width:37px;height:37px;font-size:22px}
+.featured-section .product-meta{padding:12px 11px 13px}
+.featured-section .product-meta h3{font-size:16px}
+.featured-section .product-meta p{font-size:10px;line-height:1.4}
+.featured-section .product-price-row>strong{font-size:14px}
+.featured-section .quick-add-icon{width:39px;height:39px;border-radius:10px;font-size:21px}
+}
