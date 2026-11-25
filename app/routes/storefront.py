@@ -29,6 +29,8 @@ def catalogue():
     query = Product.query.filter_by(is_active=True)
     term = request.args.get("q", "").strip()
     category = request.args.get("category", "").strip()
+    brand = request.args.get("brand", "").strip()
+    dimensions = request.args.get("dimensions", "").strip()
     material = request.args.get("material", "").strip()
     colour = request.args.get("colour", "").strip()
     availability = request.args.get("availability", "").strip()
@@ -36,9 +38,11 @@ def catalogue():
     max_price = request.args.get("max_price", "").strip()
     if term:
         like = f"%{term}%"
-        query = query.filter(or_(Product.name.ilike(like), Product.description.ilike(like), Product.material.ilike(like), Product.colour.ilike(like)))
+        query = query.filter(or_(Product.name.ilike(like), Product.description.ilike(like), Product.brand.ilike(like), Product.material.ilike(like), Product.dimensions.ilike(like), Product.colour.ilike(like)))
     if category:
         query = query.join(Category).filter(Category.slug == category)
+    if brand: query = query.filter(Product.brand.ilike(f"%{brand}%"))
+    if dimensions: query = query.filter(Product.dimensions.ilike(f"%{dimensions}%"))
     if material: query = query.filter(Product.material.ilike(f"%{material}%"))
     if colour: query = query.filter(Product.colour.ilike(f"%{colour}%"))
     if availability == "in-stock": query = query.filter(Product.stock > 0)
@@ -52,7 +56,8 @@ def catalogue():
     categories = Category.query.order_by(Category.name).all()
     materials = [r[0] for r in db.session.query(Product.material).filter(Product.material.isnot(None), Product.is_active.is_(True)).distinct().all()]
     colours = [r[0] for r in db.session.query(Product.colour).filter(Product.colour.isnot(None), Product.is_active.is_(True)).distinct().all()]
-    return render_template("storefront/catalogue.html", products=products, categories=categories, materials=materials, colours=colours)
+    brands = [r[0] for r in db.session.query(Product.brand).filter(Product.brand.isnot(None), Product.is_active.is_(True)).distinct().all()]
+    return render_template("storefront/catalogue.html", products=products, categories=categories, materials=materials, colours=colours, brands=brands)
 
 @bp.get("/category/<slug>")
 def category(slug):
