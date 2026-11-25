@@ -79,7 +79,20 @@ def product_image(image_id):
 
 @bp.get("/cart")
 def cart():
-    return render_template("storefront/cart.html", cart=session.get("cart", {}))
+    cart = session.get("cart", {})
+    lines, subtotal = [], Decimal("0")
+    for key, entry in cart.items():
+        product = db.session.get(Product, entry.get("product_id"))
+        if not product or not product.is_active:
+            continue
+        variant = db.session.get(ProductVariant, entry.get("variant_id")) if entry.get("variant_id") else None
+        if entry.get("variant_id") and not variant:
+            continue
+        price = Decimal(product.price) + (Decimal(variant.price_delta) if variant else Decimal("0"))
+        quantity = max(1, int(entry.get("quantity", 1)))
+        lines.append({"key": key, "product": product, "variant": variant, "quantity": quantity, "price": price})
+        subtotal += price * quantity
+    return render_template("storefront/cart.html", lines=lines, subtotal=subtotal)
 
 @bp.post("/cart/add")
 def cart_add():
@@ -90,6 +103,9 @@ def cart_add():
     variant = ProductVariant.query.filter_by(id=variant_id, product_id=product.id).first() if variant_id else None
     if variant_id and not variant:
         abort(400)
+    if product.variants and not variant:
+        flash("Please choose a material, finish or size option first.", "warning")
+        return redirect(request.referrer or url_for("store.product_detail", slug=product.slug))
     stock = variant.stock if variant else product.stock
     if stock < quantity:
         flash("The selected item does not have enough stock.", "warning")
@@ -110,7 +126,14 @@ def cart_update():
     quantity = request.form.get("quantity", type=int) or 0
     if key in cart:
         if quantity <= 0: cart.pop(key, None)
-        else: cart[key]["quantity"] = min(20, max(1, quantity))
+        else:
+            entry = cart[key]
+            product = db.session.get(Product, entry.get("product_id"))
+            variant = db.session.get(ProductVariant, entry.get("variant_id")) if entry.get("variant_id") else None
+            stock = variant.stock if variant else (product.stock if product else 0)
+            entry["quantity"] = min(stock, 20, max(1, quantity))
+            if entry["quantity"] < 1:
+                cart.pop(key, None)
     session["cart"] = cart
     return redirect(url_for("store.cart"))
 
