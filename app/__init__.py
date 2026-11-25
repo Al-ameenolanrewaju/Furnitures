@@ -31,6 +31,11 @@ def create_app(config_object=None):
     )
     if config_object:
         app.config.from_object(config_object)
+    if os.getenv("APP_ENV", "").lower() == "production":
+        if len(app.config.get("SECRET_KEY", "")) < 32:
+            raise RuntimeError("Production requires a SECRET_KEY of at least 32 characters.")
+        if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite:"):
+            raise RuntimeError("Production requires a persistent PostgreSQL DATABASE_URL.")
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
