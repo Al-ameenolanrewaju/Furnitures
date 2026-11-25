@@ -65,7 +65,8 @@ def product_detail(slug):
     product = Product.query.filter_by(slug=slug, is_active=True).first_or_404()
     related = Product.query.filter(Product.category_id == product.category_id, Product.id != product.id, Product.is_active.is_(True)).limit(4).all()
     reviews = Review.query.filter_by(product_id=product.id, approved=True).order_by(Review.created_at.desc()).all()
-    return render_template("storefront/product.html", product=product, related=related, reviews=reviews)
+    available_stock = sum(v.stock for v in product.variants) if product.variants else product.stock
+    return render_template("storefront/product.html", product=product, related=related, reviews=reviews, available_stock=available_stock)
 
 @bp.get("/media/<int:image_id>")
 def product_image(image_id):
@@ -103,6 +104,9 @@ def cart_add():
     variant = ProductVariant.query.filter_by(id=variant_id, product_id=product.id).first() if variant_id else None
     if variant_id and not variant:
         abort(400)
+    if product.variants and not variant:
+        flash("Please choose a material, finish or size option first.", "warning")
+        return redirect(request.referrer or url_for("store.product_detail", slug=product.slug))
     if product.variants and not variant:
         flash("Please choose a material, finish or size option first.", "warning")
         return redirect(request.referrer or url_for("store.product_detail", slug=product.slug))
