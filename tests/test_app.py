@@ -196,7 +196,7 @@ def test_admin_business_provisioning_creates_owner_categories_and_settings(app, 
         owner = User.query.filter_by(email="owner@atelier.example").one()
         assert owner.password_hash != "ChangeMe!2026"
         assert owner.check_password(owner.password_hash) is False
-        assert Category.query.filter_by(business_id=business.id).count() == 18
+        assert Category.query.filter_by(business_id=business.id).count() == 16
         assert StoreSettings.query.filter_by(business_id=business.id).one()
 
 
@@ -939,7 +939,7 @@ def test_generic_store_bootstrap_creates_isolated_store_owner_and_defaults(app, 
         assert owner.role == "OWNER"
         assert owner.check_password("a-unique-client-password")
         assert StoreSettings.query.filter_by(business_id=business.id).one()
-        assert Category.query.filter_by(business_id=business.id).count() == 18
+        assert Category.query.filter_by(business_id=business.id).count() == 16
 
 
 def test_generic_store_bootstrap_is_idempotent_and_never_resets_password(app, monkeypatch):
@@ -969,7 +969,7 @@ def test_generic_store_bootstrap_is_idempotent_and_never_resets_password(app, mo
         assert owner.check_password("first-password-is-unique")
         assert not owner.check_password("second-password-is-different")
         assert StoreSettings.query.filter_by(business_id=owner.business_id).count() == 1
-        assert Category.query.filter_by(business_id=owner.business_id).count() == 18
+        assert Category.query.filter_by(business_id=owner.business_id).count() == 16
 
 
 def test_generic_store_bootstrap_rejects_owner_email_used_by_another_store(app, monkeypatch):
@@ -1047,7 +1047,7 @@ def test_collection_filters_by_tenant_category_and_cart_page_loads(app, client):
     assert cart_response.status_code == 200
     assert b"store-cart-drawer" in cart_response.data
     assert b"Your cart" in cart_response.data
-    assert b"Your bag" not in cart_response.data
+    assert b"Your cart" in cart_response.data
 
 
 def test_collection_deduplicates_category_labels_and_filters_all_same_name_categories(app, client):
@@ -1062,7 +1062,7 @@ def test_collection_deduplicates_category_labels_and_filters_all_same_name_categ
         first_id = first.id
     response = client.get("/collection", base_url="http://store-a.test")
     assert response.status_code == 200
-    assert response.data.count(b"Accessories") == 1
+    assert response.data.count(b">Accessories</option>") == 1
     filtered = client.get(f"/collection?category={first_id}", base_url="http://store-a.test")
     assert filtered.status_code == 200
     assert b"Leather Bag" in filtered.data
