@@ -41,6 +41,7 @@ class Product(TimestampMixin, db.Model):
     description = db.Column(db.Text)
     price = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     compare_at_price = db.Column(db.Numeric(12, 2))
+    brand = db.Column(db.String(120), index=True)
     material = db.Column(db.String(120))
     colour = db.Column(db.String(120))
     dimensions = db.Column(db.String(180))
