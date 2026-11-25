@@ -122,8 +122,10 @@ def create_app(config_object=None):
 
             if not models.Category.query.filter_by(business_id=business.id).first():
                 defaults = {
-                    "Men": ["Shirts", "Trousers", "Native Wear", "Senator Outfits", "Agbada", "Kaftans", "Jackets", "Shoes", "Accessories"],
-                    "Women": ["Dresses", "Abayas", "Hijabs", "Jilbabs", "Two-Piece Outfits", "Skirts", "Blouses", "Trousers", "Accessories"],
+                    "Living Room": ["Sofas", "Armchairs", "Coffee Tables", "TV Consoles", "Side Tables"],
+                    "Bedroom": ["Beds", "Wardrobes", "Bedside Tables", "Dressers"],
+                    "Dining": ["Dining Tables", "Dining Chairs", "Cabinets"],
+                    "Office": ["Office Desks", "Office Chairs", "Bookcases", "Storage"],
                 }
                 for gender, names in defaults.items():
                     for category_name in names:
@@ -188,8 +190,10 @@ def create_app(config_object=None):
 
             if not models.Category.query.filter_by(business_id=business.id).first():
                 defaults = {
-                    "Men": ["Shirts", "Trousers", "Native Wear", "Senator Outfits", "Agbada", "Kaftans", "Jackets", "Shoes", "Accessories"],
-                    "Women": ["Dresses", "Abayas", "Hijabs", "Jilbabs", "Two-Piece Outfits", "Skirts", "Blouses", "Trousers", "Accessories"],
+                    "Living Room": ["Sofas", "Armchairs", "Coffee Tables", "TV Consoles", "Side Tables"],
+                    "Bedroom": ["Beds", "Wardrobes", "Bedside Tables", "Dressers"],
+                    "Dining": ["Dining Tables", "Dining Chairs", "Cabinets"],
+                    "Office": ["Office Desks", "Office Chairs", "Bookcases", "Storage"],
                 }
                 for gender, names in defaults.items():
                     for category_name in names:
