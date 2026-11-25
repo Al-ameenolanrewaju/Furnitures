@@ -1,38 +1,109 @@
-# Furniture Storefront
+# WhatsApp Clothing Catalogue
 
-A premium furniture e-commerce storefront built with Flask, using the clothing catalogue repository as its design and interaction reference. The reference repository is not modified.
+A simple, single-business clothing catalogue built with Flask. Customers can
+browse products, view photos and available sizes/colours, then send an order
+request directly to the shop's WhatsApp number. Customers do not need accounts,
+and the application does not take payments.
 
-## Local setup
+The private dashboard is for one shop owner to manage products, categories,
+images, inventory and store details.
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-export SECRET_KEY='replace-with-a-random-secret-at-least-32-characters'
-export DATABASE_URL='sqlite:///furniture_store.db'
-export ADMIN_EMAIL='admin@example.com'
-export ADMIN_PASSWORD='use-a-unique-password-at-least-12-characters'
-flask --app 'app:create_app()' init-db
-flask --app 'app:create_app()' run
+## Local setup (Windows PowerShell)
+
+```powershell
+py -3 -m venv .venv
+.\\.venv\\Scripts\\Activate.ps1
+python -m pip install -r requirements.txt
+$env:SECRET_KEY = "replace-with-a-random-secret-at-least-32-characters"
+$env:DATABASE_URL = "sqlite:///clothing_store.db"
+$env:COOKIE_SECURE = "false"
+python -m flask --app "app:create_app()" db upgrade
+python -m flask --app "app:create_app()" run
 ```
 
-The `init-db` command creates tables on a fresh database and creates the first administrator only when ADMIN_EMAIL and ADMIN_PASSWORD are supplied. For later schema changes use Flask-Migrate revisions and `flask db upgrade`; do not run init-db as a schema migration mechanism on an established database.
+Open `http://127.0.0.1:5000/login` for the owner login. The app requires a
+`SECRET_KEY` of at least 32 characters outside test mode.
+Running `python run.py` loads environment variables from a local `.env` file.
+Keep `.env` private and do not commit it.
 
-## Production
+## Create the shop and owner account
 
-Use PostgreSQL, a strong SECRET_KEY of at least 32 characters, APP_ENV=production and COOKIE_SECURE=true. Configure STORE_NAME and STORE_WHATSAPP. Render build command: `pip install -r requirements.txt`; start command: `gunicorn 'app:create_app()'`. Run the initial `init-db` command once for a new database, then use migrations for future schema changes.
+Run `python -m flask --app "app:create_app()" shell` using the same environment variables,
+then create the single shop and its owner:
 
-## Included functionality
+```python
+from app import db
+from app.models import Business, User
 
-- Editorial storefront, responsive navigation, room/category browsing and image-led product cards.
-- Search and combined category, price, material, colour and stock filters.
-- Product pages with image gallery, dimensions, materials, finishes and selectable variants.
-- Session-persistent guest cart and saved list, stock-aware quantity controls and checkout.
-- Orders and order items stored in the database, stock decrement at checkout and optional WhatsApp handoff.
-- Admin dashboard, product and image upload, categories, variants, stock and order status management.
-- Product images uploaded by administrators are stored as binary data in PostgreSQL; no Cloudinary or persistent disk is required.
-- Run automated tests with `pytest -q`.
+shop = Business(
+    name="Your Clothing Store",
+    slug="your-shop",
+    description="Your store description",
+    whatsapp_number="2348012345678",
+)
+owner = User(
+    name="Store Owner",
+    email="owner@example.com",
+    role="OWNER",
+)
+owner.set_password("use-a-unique-password-at-least-12-characters")
+shop.users.append(owner)
+db.session.add(shop)
+db.session.commit()
+```
 
-## Important
+The app automatically loads the first active business from the database on
+the Render URL and any hostname that is not explicitly mapped to a connected
+custom domain. You do not need to configure a store slug. Keep only one active
+business in the database for this single-shop setup. A connected custom domain
+can still point to the shop.
 
-No demo inventory, customer records or payment credentials are preloaded. Configure the store, add real products and connect a payment provider before accepting online payments. The current checkout records the order and optionally hands off to WhatsApp for payment/delivery confirmation.
+## Configuration
+
+| Variable | Purpose |
+|---|---|
+| `SECRET_KEY` | Required outside testing; at least 32 random characters |
+| `DATABASE_URL` | PostgreSQL in production; SQLite for local development |
+| `APP_ENV` | Set to `production` on Render to enforce production database requirements |
+| `COOKIE_SECURE` | Keep `true` on HTTPS; set `false` only for local HTTP |
+| `UPLOAD_FOLDER` | Legacy image directory used only to serve images uploaded by older versions |
+| `RENDER_API_KEY`, `RENDER_SERVICE_ID` | Optional existing custom-domain integration |
+
+New product images and business logos validate JPEG, PNG and WebP signatures and are stored as binary data in PostgreSQL. They remain available across Render redeploys without Cloudinary or a persistent image disk. The legacy `/media/<filename>` route remains available for images uploaded by older versions; those old files still require their original persistent disk until re-uploaded.
+
+## Deploy to Render
+
+1. Connect this repository to a Render Web Service.
+2. Build command: `pip install -r requirements.txt`.
+3. Start command: `gunicorn 'app:create_app()'`.
+4. Configure `APP_ENV=production`, `SECRET_KEY`, `DATABASE_URL` and `COOKIE_SECURE=true`.
+5. Run `python -m flask --app "app:create_app()" db upgrade` once from the Render shell.
+6. Create the shop and owner account with the Flask shell if they do not
+   already exist.
+7. Visit `/health` to check application and database readiness.
+
+The repository Procfile also sets the web start command to
+`gunicorn 'app:create_app()'`. If the Render dashboard has a custom Start
+Command saved, it must match this command because dashboard settings override
+the Procfile.
+
+## Customer ordering
+
+1. Customer opens the catalogue and chooses a product.
+2. Customer selects an available size, colour and quantity.
+3. The **Order on WhatsApp** link opens a message addressed to the shop,
+   containing the selected product, variant, quantity, price and product URL.
+4. The shop owner confirms availability, delivery and payment directly with
+   the customer in WhatsApp.
+
+The catalogue does not reserve stock or deduct inventory when a customer opens
+WhatsApp. The owner updates inventory from the dashboard after handling the
+order. Existing legacy cart/order routes and database tables are retained during
+this simplification to avoid destructive database changes; they are no longer
+part of the customer-facing navigation or product-order flow.
+
+## Tests
+
+```powershell
+python -m pytest -q
+```

@@ -1,207 +1,172 @@
-import re, secrets
-from decimal import Decimal
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, abort
-from sqlalchemy import or_
-from .. import db
-from ..models import Product, Category, ProductVariant, Order, OrderItem, Review
+from flask import Blueprint, g, render_template, request, abort, jsonify
+from sqlalchemy import case, func
+from sqlalchemy.orm import joinedload, selectinload
 
-bp = Blueprint("store", __name__)
+from .. import db, csrf
+from ..models import Category, Product, ProductVariant, StoreVisit, StoreSettings
 
-def money(value):
-    return f"₦{Decimal(value or 0):,.0f}"
+bp = Blueprint("storefront", __name__)
+PAGE_SIZE = 24
 
-def product_image(product):
-    return product.image_url or (url_for("store.product_image", image_id=product.images[0].id) if product.images else "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=900&q=85")
 
-@bp.app_template_filter("naira")
-def naira(value):
-    return money(value)
+def public_business():
+    business = getattr(g, "business", None)
+    if business is None:
+        abort(404)
+    return business
 
-@bp.get("/")
-def home():
-    featured = Product.query.filter_by(is_active=True, featured=True).order_by(Product.updated_at.desc()).limit(8).all()
-    new_arrivals = Product.query.filter_by(is_active=True, is_new=True).order_by(Product.created_at.desc()).limit(8).all()
-    categories = Category.query.order_by(Category.name).all()
-    return render_template("storefront/home.html", featured=featured, new_arrivals=new_arrivals, categories=categories)
 
-@bp.get("/shop")
-def catalogue():
-    query = Product.query.filter_by(is_active=True)
-    term = request.args.get("q", "").strip()
-    category = request.args.get("category", "").strip()
-    brand = request.args.get("brand", "").strip()
-    dimensions = request.args.get("dimensions", "").strip()
-    material = request.args.get("material", "").strip()
-    colour = request.args.get("colour", "").strip()
-    availability = request.args.get("availability", "").strip()
-    min_price = request.args.get("min_price", "").strip()
-    max_price = request.args.get("max_price", "").strip()
-    if term:
-        like = f"%{term}%"
-        query = query.filter(or_(Product.name.ilike(like), Product.description.ilike(like), Product.brand.ilike(like), Product.material.ilike(like), Product.dimensions.ilike(like), Product.colour.ilike(like)))
-    if category:
-        query = query.join(Category).filter(Category.slug == category)
-    if brand: query = query.filter(Product.brand.ilike(f"%{brand}%"))
-    if dimensions: query = query.filter(Product.dimensions.ilike(f"%{dimensions}%"))
-    if material: query = query.filter(Product.material.ilike(f"%{material}%"))
-    if colour: query = query.filter(Product.colour.ilike(f"%{colour}%"))
-    if availability == "in-stock": query = query.filter(Product.stock > 0)
-    if min_price:
-        try: query = query.filter(Product.price >= Decimal(min_price))
-        except Exception: pass
-    if max_price:
-        try: query = query.filter(Product.price <= Decimal(max_price))
-        except Exception: pass
-    products = query.order_by(Product.featured.desc(), Product.created_at.desc()).all()
-    categories = Category.query.order_by(Category.name).all()
-    materials = [r[0] for r in db.session.query(Product.material).filter(Product.material.isnot(None), Product.is_active.is_(True)).distinct().all()]
-    colours = [r[0] for r in db.session.query(Product.colour).filter(Product.colour.isnot(None), Product.is_active.is_(True)).distinct().all()]
-    brands = [r[0] for r in db.session.query(Product.brand).filter(Product.brand.isnot(None), Product.is_active.is_(True)).distinct().all()]
-    return render_template("storefront/catalogue.html", products=products, categories=categories, materials=materials, colours=colours, brands=brands)
-
-@bp.get("/category/<slug>")
-def category(slug):
-    item = Category.query.filter_by(slug=slug).first_or_404()
-    products = Product.query.filter_by(category_id=item.id, is_active=True).order_by(Product.created_at.desc()).all()
-    return render_template("storefront/catalogue.html", products=products, categories=Category.query.all(), active_category=item, materials=[], colours=[])
-
-@bp.get("/product/<slug>")
-def product_detail(slug):
-    product = Product.query.filter_by(slug=slug, is_active=True).first_or_404()
-    related = Product.query.filter(Product.category_id == product.category_id, Product.id != product.id, Product.is_active.is_(True)).limit(4).all()
-    reviews = Review.query.filter_by(product_id=product.id, approved=True).order_by(Review.created_at.desc()).all()
-    available_stock = sum(v.stock for v in product.variants) if product.variants else product.stock
-    return render_template("storefront/product.html", product=product, related=related, reviews=reviews, available_stock=available_stock)
-
-@bp.get("/media/<int:image_id>")
-def product_image(image_id):
-    from flask import Response
-    from ..models import ProductImage
-    image = ProductImage.query.get_or_404(image_id)
-    response = Response(image.image_data, mimetype=image.mime_type)
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["Cache-Control"] = "public, max-age=86400"
-    return response
-
-@bp.get("/cart")
-def cart():
-    cart = session.get("cart", {})
-    lines, subtotal = [], Decimal("0")
-    for key, entry in cart.items():
-        product = db.session.get(Product, entry.get("product_id"))
-        if not product or not product.is_active:
-            continue
-        variant = db.session.get(ProductVariant, entry.get("variant_id")) if entry.get("variant_id") else None
-        if entry.get("variant_id") and not variant:
-            continue
-        price = Decimal(product.price) + (Decimal(variant.price_delta) if variant else Decimal("0"))
-        quantity = max(1, int(entry.get("quantity", 1)))
-        lines.append({"key": key, "product": product, "variant": variant, "quantity": quantity, "price": price})
-        subtotal += price * quantity
-    return render_template("storefront/cart.html", lines=lines, subtotal=subtotal)
-
-@bp.post("/cart/add")
-def cart_add():
-    product_id = request.form.get("product_id", type=int)
-    variant_id = request.form.get("variant_id", type=int)
-    quantity = max(1, min(20, request.form.get("quantity", type=int) or 1))
-    product = Product.query.filter_by(id=product_id, is_active=True).first_or_404()
-    variant = ProductVariant.query.filter_by(id=variant_id, product_id=product.id).first() if variant_id else None
-    if variant_id and not variant:
-        abort(400)
-    if product.variants and not variant:
-        flash("Please choose a material, finish or size option first.", "warning")
-        return redirect(request.referrer or url_for("store.product_detail", slug=product.slug))
-    if product.variants and not variant:
-        flash("Please choose a material, finish or size option first.", "warning")
-        return redirect(request.referrer or url_for("store.product_detail", slug=product.slug))
-    stock = variant.stock if variant else product.stock
-    if stock < quantity:
-        flash("The selected item does not have enough stock.", "warning")
-        return redirect(request.referrer or url_for("store.product_detail", slug=product.slug))
-    cart = session.get("cart", {})
-    key = f"{product.id}:{variant.id if variant else 0}"
-    existing = cart.get(key, {})
-    cart[key] = {"product_id": product.id, "variant_id": variant.id if variant else None, "quantity": min(stock, int(existing.get("quantity", 0)) + quantity)}
-    session["cart"] = cart
-    session.modified = True
-    flash("Added to your bag.", "success")
-    return redirect(request.referrer or url_for("store.cart"))
-
-@bp.post("/cart/update")
-def cart_update():
-    cart = session.get("cart", {})
-    key = request.form.get("key", "")
-    quantity = request.form.get("quantity", type=int) or 0
-    if key in cart:
-        if quantity <= 0: cart.pop(key, None)
-        else:
-            entry = cart[key]
-            product = db.session.get(Product, entry.get("product_id"))
-            variant = db.session.get(ProductVariant, entry.get("variant_id")) if entry.get("variant_id") else None
-            stock = variant.stock if variant else (product.stock if product else 0)
-            entry["quantity"] = min(stock, 20, max(1, quantity))
-            if entry["quantity"] < 1:
-                cart.pop(key, None)
-    session["cart"] = cart
-    return redirect(url_for("store.cart"))
-
-@bp.get("/wishlist")
-def wishlist():
-    ids = [int(x) for x in session.get("wishlist", []) if str(x).isdigit()]
-    products = Product.query.filter(Product.id.in_(ids), Product.is_active.is_(True)).all() if ids else []
-    return render_template("storefront/wishlist.html", products=products)
-
-@bp.post("/wishlist/toggle")
-def wishlist_toggle():
-    product_id = request.form.get("product_id", type=int)
-    product = Product.query.filter_by(id=product_id, is_active=True).first_or_404()
-    ids = [str(x) for x in session.get("wishlist", [])]
-    if str(product.id) in ids: ids.remove(str(product.id))
-    else: ids.append(str(product.id))
-    session["wishlist"] = ids
-    return redirect(request.referrer or url_for("store.wishlist"))
-
-@bp.route("/checkout", methods=["GET", "POST"])
-def checkout():
-    cart = session.get("cart", {})
-    lines, subtotal = [], Decimal("0")
-    for key, entry in cart.items():
-        product = db.session.get(Product, entry.get("product_id"))
-        if not product or not product.is_active: continue
-        variant = db.session.get(ProductVariant, entry.get("variant_id")) if entry.get("variant_id") else None
-        price = Decimal(product.price) + (Decimal(variant.price_delta) if variant else Decimal("0"))
-        qty = max(1, int(entry.get("quantity", 1)))
-        lines.append((product, variant, qty, price))
-        subtotal += price * qty
-    if request.method == "POST":
-        if not lines:
-            flash("Your bag is empty.", "warning")
-            return redirect(url_for("store.cart"))
-        name, email, phone, address = [request.form.get(k, "").strip() for k in ("name", "email", "phone", "address")]
-        if not all((name, email, phone, address)):
-            flash("Please complete your contact and delivery details.", "warning")
-            return redirect(url_for("store.checkout"))
-        for product, variant, qty, price in lines:
-            stock = variant.stock if variant else product.stock
-            if stock < qty:
-                flash(f"Not enough stock for {product.name}. Please update your bag.", "warning")
-                return redirect(url_for("store.cart"))
-        order = Order(order_number="HF-" + secrets.token_hex(4).upper(), customer_name=name, email=email, phone=phone, address=address, notes=request.form.get("notes", "").strip(), subtotal=subtotal, total=subtotal)
-        db.session.add(order)
-        db.session.flush()
-        for product, variant, qty, price in lines:
-            db.session.add(OrderItem(order_id=order.id, product_id=product.id, variant_id=variant.id if variant else None, product_name=product.name, variant_label=variant.label if variant else None, unit_price=price, quantity=qty))
-            if variant: variant.stock -= qty
-            else: product.stock -= qty
+@bp.post("/track-visit")
+@csrf.exempt
+def track_visit():
+    """Record page views outside the navigation response so page changes stay fast."""
+    business = getattr(g, "business", None)
+    payload = request.get_json(silent=True) or {}
+    path = payload.get("path", "")
+    if business and isinstance(path, str) and path.startswith("/") and not path.startswith("//"):
+        db.session.add(StoreVisit(business_id=business.id, path=path[:500]))
         db.session.commit()
-        session["cart"] = {}
-        message = f"Hello {current_app.config['STORE_NAME']}, I placed order {order.order_number}. Total: {money(order.total)}. Please confirm delivery and payment."
-        phone_digits = re.sub(r"\D", "", current_app.config.get("STORE_WHATSAPP", ""))
-        wa_url = f"https://wa.me/{phone_digits}?text={__import__('urllib.parse').parse.quote(message)}" if phone_digits else None
-        return render_template("storefront/order_success.html", order=order, wa_url=wa_url)
-    return render_template("storefront/checkout.html", lines=lines, subtotal=subtotal)
+    return jsonify({"ok": True}), 202
 
-@bp.get("/search")
-def search():
-    return redirect(url_for("store.catalogue", q=request.args.get("q", "")))
+
+def storefront_context(business):
+    settings = StoreSettings.query.filter_by(business_id=business.id).first()
+    all_categories = Category.query.filter_by(business_id=business.id).order_by(Category.name, Category.id).all()
+    categories = []
+    seen_names = set()
+    for category in all_categories:
+        key = " ".join((category.name or "").split()).casefold()
+        if key and key not in seen_names:
+            categories.append(category)
+            seen_names.add(key)
+    return settings, categories
+
+
+def public_products(business):
+    return Product.query.options(
+        selectinload(Product.images),
+        selectinload(Product.variants),
+        joinedload(Product.category),
+    ).filter_by(business_id=business.id, is_published=True)
+
+
+def category_for_slug(business, slug):
+    category = Category.query.filter_by(business_id=business.id, slug=slug).first()
+    if category:
+        return category
+    # Legacy categories may have inconsistent slugs; match a normalized name safely.
+    normalized = " ".join(slug.replace("-", " ").split()).casefold()
+    candidates = Category.query.filter_by(business_id=business.id).order_by(Category.id).all()
+    return next((item for item in candidates if " ".join((item.name or "").split()).casefold() == normalized), None)
+
+
+def render_listing(business, products, selected_category=None, selected_size="", selected_colour="", page=1, page_count=1):
+    settings, categories = storefront_context(business)
+    variant_rows = ProductVariant.query.filter_by(
+        business_id=business.id, is_available=True
+    ).order_by(ProductVariant.size, ProductVariant.colour).all()
+    sizes = sorted({v.size.strip() for v in variant_rows if v.size and v.size.strip()}, key=str.casefold)
+    colours = sorted({v.colour.strip() for v in variant_rows if v.colour and v.colour.strip()}, key=str.casefold)
+    return render_template(
+        "storefront/collection.html", business=business, products=products,
+        categories=categories, selected_category=selected_category, settings=settings,
+        sizes=sizes, colours=colours, selected_size=selected_size,
+        selected_colour=selected_colour, page=page, page_count=page_count,
+    )
+
+
+@bp.route("/")
+def home():
+    business = public_business()
+    products = public_products(business).order_by(func.random()).limit(4).all()
+    settings, categories = storefront_context(business)
+    return render_template(
+        "storefront/home.html", business=business, featured=products,
+        settings=settings, categories=categories,
+    )
+
+
+@bp.route("/collection")
+def collection():
+    business = public_business()
+    query = public_products(business)
+    category_id = request.args.get("category", type=int)
+    selected_category = None
+    selected_size = (request.args.get("size") or "").strip()
+    selected_colour = (request.args.get("colour") or "").strip()
+    page = max(request.args.get("page", 1, type=int), 1)
+    if category_id:
+        selected_category = Category.query.filter_by(id=category_id, business_id=business.id).first_or_404()
+        same_name_ids = [c.id for c in Category.query.filter_by(business_id=business.id).all()
+                         if " ".join((c.name or "").split()).casefold() == " ".join((selected_category.name or "").split()).casefold()]
+        query = query.filter(Product.category_id.in_(same_name_ids))
+    if selected_size:
+        matching = db.session.query(ProductVariant.product_id).filter(
+            ProductVariant.business_id == business.id,
+            ProductVariant.size.ilike(selected_size),
+            ProductVariant.is_available.is_(True),
+        )
+        query = query.filter(Product.id.in_(matching))
+    if selected_colour:
+        matching = db.session.query(ProductVariant.product_id).filter(
+            ProductVariant.business_id == business.id,
+            ProductVariant.colour.ilike(selected_colour),
+            ProductVariant.is_available.is_(True),
+        )
+        query = query.filter(Product.id.in_(matching))
+    total = query.count()
+    products = query.order_by(func.random()).offset((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).all()
+    return render_listing(business, products, selected_category, selected_size, selected_colour, page, max((total + PAGE_SIZE - 1) // PAGE_SIZE, 1))
+
+
+@bp.route("/category/<string:slug>")
+def category(slug):
+    business = public_business()
+    selected_category = category_for_slug(business, slug)
+    if not selected_category:
+        abort(404)
+    same_name_ids = [c.id for c in Category.query.filter_by(business_id=business.id).all()
+                     if " ".join((c.name or "").split()).casefold() == " ".join((selected_category.name or "").split()).casefold()]
+    query = public_products(business).filter(Product.category_id.in_(same_name_ids))
+    selected_product_id = request.args.get("product", type=int)
+    page = max(request.args.get("page", 1, type=int), 1)
+    total = query.count()
+    if selected_product_id:
+        ordered = query.order_by(case((Product.id == selected_product_id, 0), else_=1),
+                                 Product.created_at.desc(), Product.id.desc())
+    else:
+        ordered = query.order_by(func.random())
+    products = ordered.offset((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).all()
+    return render_listing(business, products, selected_category, page=page,
+                          page_count=max((total + PAGE_SIZE - 1) // PAGE_SIZE, 1))
+
+
+@bp.route("/product/<string:slug>")
+def product_detail(slug):
+    business = public_business()
+    product = public_products(business).filter_by(slug=slug).first_or_404()
+    settings, categories = storefront_context(business)
+    images = list(product.images or [])
+    variants = [v for v in product.variants if v.is_available]
+    return render_template(
+        "storefront/product_detail.html", business=business, product=product,
+        images=images, variants=variants, settings=settings, categories=categories,
+    )
+
+
+@bp.route("/wishlist")
+def wishlist():
+    business = public_business()
+    settings, categories = storefront_context(business)
+    return render_template("storefront/wishlist.html", business=business, settings=settings, categories=categories)
+
+
+@bp.route("/cart")
+def cart():
+    business = public_business()
+    products = public_products(business).order_by(Product.created_at.desc(), Product.id.desc()).limit(4).all()
+    settings, categories = storefront_context(business)
+    return render_template(
+        "storefront/home.html", business=business, featured=products,
+        settings=settings, categories=categories,
+    )

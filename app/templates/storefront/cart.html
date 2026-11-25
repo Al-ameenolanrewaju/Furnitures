@@ -1,6 +1,14 @@
-{% extends "base.html" %}{% block title %}Your bag — {{ store_name }}{% endblock %}{% block content %}
-<section class="page-hero compact"><span class="eyebrow">YOUR SELECTION</span><h1>The shopping <em>bag.</em></h1></section>
-<section class="cart-page">
-{% if lines %}<div class="cart-layout"><div class="cart-lines">{% for line in lines %}<article class="cart-line"><a class="cart-line-image" href="{{ url_for('store.product_detail', slug=line.product.slug) }}"><img src="{{ line.product.image_url or (url_for('store.product_image', image_id=line.product.images[0].id) if line.product.images else 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&q=80') }}" alt="{{ line.product.name }}"></a><div class="cart-line-info"><span class="eyebrow">{{ line.product.category.name if line.product.category else 'FURNITURE' }}</span><h3>{{ line.product.name }}</h3>{% if line.variant %}<p>{{ line.variant.label }}</p>{% endif %}<strong>{{ line.price|naira }}</strong><form method="post" action="{{ url_for('store.cart_update') }}" class="cart-update"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="key" value="{{ line.key }}"><input type="number" name="quantity" min="0" max="20" value="{{ line.quantity }}"><button class="table-action">Update</button><small>Set quantity to 0 to remove</small></form></div><strong class="cart-line-total">{{ (line.price * line.quantity)|naira }}</strong></article>{% endfor %}</div><aside class="cart-summary"><h2>Order summary</h2><div class="summary-total"><span>Subtotal</span><strong>{{ subtotal|naira }}</strong></div><p>Delivery and payment details will be confirmed after your order is placed.</p><a class="button button-dark full-width" href="{{ url_for('store.checkout') }}">Continue to checkout ↗</a><a class="reset-link" href="{{ url_for('store.catalogue') }}">Continue shopping</a></aside></div>
-{% else %}<div class="empty-cart"><span class="eyebrow">A LITTLE SPACE FOR SOMETHING LOVELY</span><h2>Your bag is <em>waiting.</em></h2><p>There is nothing here just yet. Explore the collection and find a piece that feels like home.</p><a class="button button-dark" href="{{ url_for('store.catalogue') }}">Explore furniture ↗</a></div>{% endif %}
-</section>{% endblock %}
+{% extends "base.html" %}
+{% block title %}Your Bag | {{ business.name }}{% endblock %}
+{% block body_class %}fashion-store{% endblock %}
+{% block body %}
+{% include "storefront/_nav.html" %}
+<main class="cart-page">
+  <header class="collection-page-heading"><span class="eyebrow">Your selection</span><h1>Your bag.</h1><p>Review your pieces before sending your order to {{ business.name }}.</p></header>
+  <div id="cart-items" class="cart-items" aria-live="polite"></div>
+  <div class="cart-summary" id="cart-summary" hidden><div><span>Subtotal</span><strong id="cart-subtotal">₦0</strong></div><button class="luxury-button luxury-button-gold" type="button" id="whatsapp-checkout">Continue on WhatsApp ↗</button></div>
+  <div class="cart-empty" id="cart-empty"><h2>Your bag is waiting.</h2><p>You haven't added any pieces yet.</p><a class="luxury-button luxury-button-gold" href="{{ url_for('storefront.collection') }}">Explore the collection</a></div>
+</main>
+{% include "storefront/_footer.html" %}
+{% endblock %}
+{% block scripts %}<script>window.STORE_WHATSAPP="{{ business.whatsapp_number or '' }}";window.STORE_NAME={{ business.name|tojson }};</script><script src="{{ url_for('static', filename='js/storefront.js') }}?v=4" defer></script>{% endblock %}

@@ -1,1 +1,13 @@
-{% extends "base.html" %}{% block title %}Saved pieces — {{ store_name }}{% endblock %}{% block content %}<section class="page-hero compact"><span class="eyebrow">YOUR LITTLE BLACK BOOK</span><h1>Pieces to <em>remember.</em></h1></section><section class="section"><div class="product-grid">{% for product in products %}{% include "storefront/_card.html" %}{% else %}<p class="empty-note">Your saved pieces will find a home here. Explore the collection and tap the heart on anything you love.</p>{% endfor %}</div></section>{% endblock %}
+{% extends "base.html" %}
+{% block title %}Saved for Later | {{ business.name }}{% endblock %}
+{% block body_class %}fashion-store{% endblock %}
+{% block body %}
+{% include "storefront/_nav.html" %}
+<main class="wishlist-page">
+  <header class="collection-page-heading"><span class="eyebrow">Your favourites</span><h1>Saved for later.</h1><p>Pieces you love, ready when you are.</p></header>
+  <div class="wishlist-grid product-grid luxury-product-grid" data-wishlist-grid aria-live="polite"></div>
+  <section class="wishlist-empty-state" data-wishlist-empty hidden><div class="wishlist-empty-icon">♡</div><h2>Your wishlist is waiting.</h2><p>Save pieces you love and find them here whenever you return.</p><a class="luxury-button luxury-button-gold" href="{{ url_for('storefront.collection') }}">Explore the collection</a></section>
+</main>
+{% include "storefront/_footer.html" %}
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/storefront.js') }}?v=9" defer></script>{% endblock %}

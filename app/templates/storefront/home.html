@@ -1,10 +1,34 @@
 {% extends "base.html" %}
-{% block content %}
-<section class="home-hero">
-<div class="home-hero-image"><img src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=2000&q=90" alt="Warm contemporary living room"></div>
-<div class="home-hero-shade"></div>
-<div class="home-hero-copy"><span class="eyebrow">MADE FOR THE WAY YOU LIVE</span><h1>Furniture for<br><em>Better Living.</em></h1><p>Timeless pieces for your home, office<br class="desktop-break"> and every space in between.</p><a class="button button-brown" href="{{ url_for('store.catalogue') }}">Explore collection <span>→</span></a></div>
-</section>
-<section class="section category-section"><div class="section-heading"><div><span class="eyebrow">FIND YOUR ROOM</span><h2>Spaces, thoughtfully<br class="mobile-break"> <em>furnished.</em></h2></div><a class="text-link" href="{{ url_for('store.catalogue') }}">View all categories ↗</a></div><div class="category-grid">{% for category in categories %}<a class="category-tile" href="{{ url_for('store.category', slug=category.slug) }}"><div class="category-image"><img loading="lazy" src="{{ category.image_url or 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=900&q=85' }}" alt="{{ category.name }}"></div><div><h3>{{ category.name }}</h3><span>Explore →</span></div></a>{% endfor %}</div></section>
-<section class="section product-section featured-section"><div class="section-heading"><div><span class="eyebrow">THE PIECES WE LOVE</span><h2>Considered <em>favourites.</em></h2></div><a class="text-link" href="{{ url_for('store.catalogue') }}">Shop all furniture ↗</a></div><div class="product-grid">{% for product in featured %}{% include "storefront/_card.html" %}{% else %}<p class="empty-note">No featured products yet.</p>{% endfor %}</div></section>
+{% block title %}{{ settings.seo_title if settings and settings.seo_title else business.name ~ ' | Collection' }}{% endblock %}
+{% block meta_description %}{{ settings.seo_description if settings and settings.seo_description else (business.description or 'Explore the latest collection.') }}{% endblock %}
+{% block body_class %}fashion-store{% endblock %}
+{% block body %}
+{% include "storefront/_nav.html" %}
+<main>
+  <section class="luxury-hero">
+    <div class="luxury-hero-copy">
+      <span class="eyebrow">{{ settings.tagline if settings and settings.tagline else 'The ' ~ business.name ~ ' collection' }}</span>
+      <h1>{% if settings and settings.hero_title %}{{ settings.hero_title }}{% else %}Pieces to wear,<br><em>and wear again.</em>{% endif %}</h1>
+      <p>{{ (settings.about_text if settings and settings.about_text else business.description) or 'Pieces made to be remembered. Discover pieces selected with care, check available sizes and colours, and speak with us directly on WhatsApp.' }}</p>
+      <div class="hero-actions">
+        {% if business.whatsapp_number %}<a class="luxury-button luxury-button-gold" href="https://wa.me/{{ business.whatsapp_number|replace('+','')|replace(' ','')|replace('-','') }}" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">◉</span> Chat on WhatsApp</a>{% endif %}
+        <a class="luxury-button luxury-button-outline" href="{{ url_for('storefront.collection') }}">{{ settings.hero_cta if settings and settings.hero_cta else 'Explore Collection' }} <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+    <div class="luxury-hero-image">
+      {% if business.banner_url %}<img src="{{ business.banner_url }}?v={{ business.updated_at.timestamp()|int }}" alt="{{ business.name }} collection">{% else %}<div class="editorial-brand-panel"><span class="editorial-brand-name">{{ business.name }}</span><span class="editorial-brand-caption">{{ settings.tagline if settings and settings.tagline else 'A considered collection' }}</span></div>{% endif %}
+    </div>
+  </section>
+  <section class="luxury-collection" id="featured">
+    <div class="luxury-section-head"><div><span class="eyebrow">{{ settings.catalogue_eyebrow if settings and settings.catalogue_eyebrow else 'The collection' }}</span><h2>{{ settings.catalogue_title if settings and settings.catalogue_title else 'Pieces to wear, and wear again.' }}</h2></div></div>
+    <div class="product-grid luxury-product-grid">
+      {% for product in featured %}{% include "storefront/_product_card.html" %}{% else %}
+      <div class="catalogue-empty-state"><h3>{{ settings.empty_title if settings and settings.empty_title else 'A new collection is on its way.' }}</h3><p>{{ settings.empty_text if settings and settings.empty_text else 'Our pieces will appear here as soon as they are added.' }}</p></div>
+      {% endfor %}
+    </div>
+    {% if featured %}<div class="collection-next"><a class="luxury-button luxury-button-outline" href="{{ url_for('storefront.collection') }}">Explore the collection <span aria-hidden="true">→</span></a></div>{% endif %}
+  </section>
+</main>
+{% include "storefront/_footer.html" %}
 {% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/storefront.js') }}?v=9" defer></script>{% endblock %}
