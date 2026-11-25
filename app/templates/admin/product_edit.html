@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% block title %}Edit {{ product.name }} — {{ store_name }}{% endblock %}{% block content %}
+{% extends "admin/admin_base.html" %}{% block title %}Edit {{ product.name }} — {{ store_name }}{% endblock %}{% block admin_content %}
 <section class="admin-wrap"><div class="admin-heading"><div><span class="eyebrow">INVENTORY MANAGEMENT</span><h1>Edit <em>{{ product.name }}.</em></h1></div><a class="button button-outline" href="{{ url_for('admin.products') }}">Back to products</a></div>
 <form class="admin-form" method="post" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="form-grid">
 <label>Product name<input name="name" required value="{{ product.name }}"></label><label>Category<select name="category_id"><option value="">Uncategorised</option>{% for c in categories %}<option value="{{ c.id }}" {% if product.category_id==c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></label>
