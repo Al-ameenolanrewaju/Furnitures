@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from .. import db
-from ..models import Product, Category, ProductVariant, ProductImage, Order
+from ..models import Product, Category, ProductVariant, ProductImage, Order, OrderItem
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -56,7 +56,7 @@ def toggle_product(product_id):
 @bp.post("/products/<int:product_id>/delete")
 def delete_product(product_id):
     product = Product.query.get_or_404(product_id)
-    if Order.query.join(__import__("..models", fromlist=["OrderItem"]).OrderItem).filter_by(product_id=product.id).first():
+    if OrderItem.query.filter_by(product_id=product.id).first():
         product.is_active = False
         flash("Product is in an order history, so it was archived instead of deleted.", "info")
     else:
