@@ -53,6 +53,17 @@ def create_app(config_object=None):
 
     from . import models
 
+    @app.cli.command("init-db")
+    def init_db():
+        """Initialize the database schema for the Render startup command."""
+        db.create_all()
+        print("Database tables are ready.")
+
+    @app.cli.command("seed-demo")
+    def seed_demo():
+        """Keep startup compatible without inserting demo catalogue data."""
+        print("Demo seeding is disabled; no sample products or accounts were inserted.")
+
     @app.cli.command("bootstrap-store")
     def bootstrap_store():
         """Create one independent client store from STORE_* environment variables."""
