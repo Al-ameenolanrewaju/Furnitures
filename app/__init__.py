@@ -18,7 +18,7 @@ csrf = CSRFProtect()
 
 def create_app(config_object=None):
     app = Flask(__name__)
-    database_url = os.getenv("DATABASE_URL", "sqlite:///clothing_store.db").strip()
+    database_url = os.getenv("DATABASE_URL", "sqlite:///furniture_store.db").strip()
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql+psycopg://", 1)
     elif database_url.startswith("postgresql://"):
