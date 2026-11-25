@@ -61,8 +61,10 @@ class DomainForm(FlaskForm):
 
 
 DEFAULT_CATEGORIES = {
-    "Men": ["Shirts", "Trousers", "Native Wear", "Senator Outfits", "Agbada", "Kaftans", "Jackets", "Shoes", "Accessories"],
-    "Women": ["Dresses", "Abayas", "Hijabs", "Jilbabs", "Two-Piece Outfits", "Skirts", "Blouses", "Trousers", "Accessories"],
+    "Living Room": ["Sofas", "Armchairs", "Coffee Tables", "TV Consoles", "Side Tables"],
+    "Bedroom": ["Beds", "Wardrobes", "Bedside Tables", "Dressers"],
+    "Dining": ["Dining Tables", "Dining Chairs", "Cabinets"],
+    "Office": ["Office Desks", "Office Chairs", "Bookcases", "Storage"],
 }
 
 
