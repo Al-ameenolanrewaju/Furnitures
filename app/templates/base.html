@@ -23,11 +23,10 @@
 <main id="main-content">{% block content %}{% endblock %}</main>
 <footer class="site-footer">
 <div class="footer-main">
-<div class="footer-brand"><a class="brand-lockup" href="{{ url_for('store.home') }}"><span class="brand-mark" aria-hidden="true">⌂</span><span class="wordmark">{{ store_name }}<small>FURNITURE & LIVING</small></span></a><p>Furniture for the way you live.<br>Thoughtful pieces, made to feel at home.</p></div>
+<div class="footer-brand"><a class="brand-lockup" href="{{ url_for('store.home') }}"><span class="brand-mark" aria-hidden="true">⌂</span><span class="wordmark">{{ store_name }}<small>FURNITURE & LIVING</small></span></a><p>Furniture for the way you live.</p></div>
 <div><h4>Explore</h4><a href="{{ url_for('store.catalogue') }}">Shop all furniture</a><a href="{{ url_for('store.wishlist') }}">Saved pieces</a><a href="{{ url_for('store.cart') }}">Shopping bag</a></div>
-<div><h4>Customer care</h4><a href="{{ url_for('store.checkout') }}">Delivery & checkout</a><a href="mailto:hello@example.com">Contact us</a><a href="{{ url_for('auth.login') }}">Account</a></div>
-<div class="footer-note"><span>THE ART OF LIVING WELL</span><p>Good design is not just how a room looks. It is how it makes you feel.</p></div>
+<div><h4>Customer care</h4><a href="{{ url_for('store.checkout') }}">Delivery & checkout</a><a href="mailto:hello@example.com">Contact us</a></div>
 </div>
-<div class="footer-bottom"><span>© {{ current_year }} {{ store_name }}. All rights reserved.</span><span>Designed for everyday living.</span></div>
+<div class="footer-bottom"><span>© {{ current_year }} {{ store_name }}. All rights reserved.</span></div>
 </footer>
 </body></html>
