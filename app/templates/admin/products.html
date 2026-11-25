@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% block title %}Manage products — {{ store_name }}{% endblock %}{% block content %}
+{% extends "admin/admin_base.html" %}{% block title %}Manage products — {{ store_name }}{% endblock %}{% block admin_content %}
 <section class="admin-wrap"><div class="admin-heading"><div><span class="eyebrow">CATALOGUE MANAGEMENT</span><h1>Furniture <em>inventory.</em></h1></div></div>
 <nav class="admin-nav"><a href="{{ url_for('admin.dashboard') }}">Overview</a><a class="active" href="{{ url_for('admin.products') }}">Products</a><a href="{{ url_for('admin.categories') }}">Categories</a><a href="{{ url_for('admin.orders') }}">Orders</a></nav>
 <form class="admin-form" method="post" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><h2>Add a furniture piece</h2>
