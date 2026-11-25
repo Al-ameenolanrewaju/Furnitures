@@ -1,1 +1,31 @@
-{% extends "base.html" %}{% block title %}Admin dashboard — {{ store_name }}{% endblock %}{% block content %}<section class="admin-wrap"><div class="admin-heading"><div><span class="eyebrow">STORE MANAGEMENT</span><h1>Good to see you.</h1></div><a class="button button-dark" href="{{ url_for('store.home') }}">View storefront ↗</a></div><nav class="admin-nav"><a class="active" href="{{ url_for('admin.dashboard') }}">Overview</a><a href="{{ url_for('admin.products') }}">Products</a><a href="{{ url_for('admin.categories') }}">Categories</a><a href="{{ url_for('admin.orders') }}">Orders</a><a href="{{ url_for('auth.logout') }}">Sign out</a></nav><div class="stat-grid"><div><span>PRODUCTS</span><strong>{{ product_count }}</strong></div><div><span>ORDERS</span><strong>{{ order_count }}</strong></div><div><span>AWAITING ACTION</span><strong>{{ pending_count }}</strong></div></div><div class="admin-table"><h2>Recent orders</h2>{% for order in recent_orders %}<div class="admin-row"><span>{{ order.order_number }} · {{ order.customer_name }}</span><strong>{{ order.total|naira }}</strong><span>{{ order.status }}</span></div>{% else %}<p>No orders yet.</p>{% endfor %}</div></section>{% endblock %}
+{% extends "admin/admin_base.html" %}
+{% block title %}Dashboard · {{ store_name }}{% endblock %}
+{% block admin_content %}
+<section class="admin-page-head"><div><span class="admin-kicker">STORE OVERVIEW</span><h1>Good morning<span>.</span></h1><p>Here’s what’s happening with your store.</p></div><a class="admin-primary" href="{{ url_for('store.home') }}" target="_blank" rel="noopener">View storefront ↗</a></section>
+<section class="admin-metrics">
+  <article class="admin-metric"><span>NET ORDER VALUE</span><strong>{{ revenue|naira }}</strong><small>All orders excluding cancelled</small></article>
+  <article class="admin-metric"><span>TOTAL ORDERS</span><strong>{{ order_count }}</strong><small>{{ pending_count }} awaiting action</small></article>
+  <article class="admin-metric"><span>ACTIVE PRODUCTS</span><strong>{{ product_count }}</strong><small>{{ category_count }} collections</small></article>
+  <article class="admin-metric {% if low_stock_count %}metric-warning{% endif %}"><span>LOW STOCK ITEMS</span><strong>{{ low_stock_count }}</strong><small>Five units or fewer</small></article>
+</section>
+<div class="admin-dashboard-grid">
+  <section class="admin-panel sales-panel"><div class="admin-panel-head"><div><span class="admin-kicker">LAST 7 DAYS</span><h2>Sales activity</h2></div><span class="admin-muted">Daily order value</span></div>
+    <div class="sales-chart" role="img" aria-label="Daily order value for the last seven days">
+      {% set max_value = daily_sales|map(attribute='revenue')|max %}
+      {% for day in daily_sales %}<div class="sales-day"><div class="sales-bar-wrap"><div class="sales-bar" style="height:{{ (day.revenue / max_value * 100) if max_value else 0 }}%"></div></div><strong>{{ day.revenue|naira }}</strong><span>{{ day.label }}</span></div>{% endfor %}
+    </div>
+  </section>
+  <section class="admin-panel status-panel"><div class="admin-panel-head"><div><span class="admin-kicker">FULFILMENT</span><h2>Order status</h2></div></div>
+    {% for label, count in status_counts.items() %}<div class="status-line"><span>{{ label|title }}</span><strong>{{ count }}</strong></div>{% endfor %}
+  </section>
+</div>
+<div class="admin-dashboard-grid lower-grid">
+  <section class="admin-panel"><div class="admin-panel-head"><div><span class="admin-kicker">LATEST ACTIVITY</span><h2>Recent orders</h2></div><a href="{{ url_for('admin.orders') }}">All orders ↗</a></div>
+    <div class="admin-orders-table"><div class="admin-orders-header"><span>ORDER</span><span>CUSTOMER</span><span>AMOUNT</span><span>STATUS</span></div>
+    {% for order in recent_orders %}<a class="admin-order-row" href="{{ url_for('admin.orders') }}"><strong>{{ order.order_number }}</strong><span>{{ order.customer_name }}</span><strong>{{ order.total|naira }}</strong><span class="order-pill status-{{ order.status|lower }}">{{ order.status|title }}</span></a>{% else %}<p class="admin-empty">No orders yet. New customer orders will appear here.</p>{% endfor %}</div>
+  </section>
+  <section class="admin-panel"><div class="admin-panel-head"><div><span class="admin-kicker">INVENTORY ALERT</span><h2>Needs attention</h2></div><a href="{{ url_for('admin.products') }}">Manage ↗</a></div>
+    {% for product in low_stock %}<div class="stock-alert"><div><strong>{{ product.name }}</strong><small>{{ product.sku or 'No SKU' }}</small></div><span class="{% if product.stock == 0 %}stock-empty{% endif %}">{{ product.stock }} left</span></div>{% else %}<p class="admin-empty">Your active inventory is looking healthy.</p>{% endfor %}
+  </section>
+</div>
+{% endblock %}
