@@ -4,8 +4,10 @@
     {% if business.logo_url %}<img src="{{ business.logo_url }}" alt="{{ business.name }}">{% else %}<span class="furniture-wordmark">{{ business.name }}</span>{% endif %}
   </a>
   <div class="store-menu luxury-menu" id="store-menu">
-    <a href="{{ url_for('storefront.home') }}" aria-current="page">Home</a>
+    <a href="{{ url_for('storefront.home') }}">Home</a>
     <a href="{{ url_for('storefront.collection') }}">Catalogue</a>
+    <a href="{{ url_for('storefront.wishlist') }}">Wishlist <span data-wishlist-count>0</span></a>
+    <a href="{{ url_for('storefront.cart') }}">Cart <span data-cart-count>0</span></a>
     {% if business.whatsapp_number %}<a href="https://wa.me/{{ business.whatsapp_number|replace('+','')|replace(' ','')|replace('-','') }}" target="_blank" rel="noopener noreferrer">Contact</a>{% endif %}
   </div>
 </nav>
