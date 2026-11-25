@@ -21,7 +21,7 @@
       </div>
       {% endif %}
     </div>
-    <div class="premium-product-info">
+    <div class="premium-product-info" data-product-card data-product-id="{{ product.id }}" data-product-slug="{{ product.slug }}" data-product-name="{{ product.name }}" data-product-price="{{ product.price }}" data-product-description="{{ product.description or '' }}" data-product-category="{{ product.category.name if product.category else '' }}">
       {% if product.category %}<p class="premium-product-category">{{ product.category.name }}</p>{% endif %}
       <h1>{{ product.name }}</h1>
       <p class="premium-product-price">₦{{ "{:,.0f}".format(product.price) }}</p>
@@ -36,9 +36,13 @@
         </div>
       </section>
       {% endif %}
+      <div class="product-detail-actions">
+        <button type="button" class="luxury-button luxury-button-gold" data-add-to-cart aria-pressed="false">Add to Cart</button>
+        <button type="button" class="product-favourite wishlist-toggle" data-wishlist-toggle aria-pressed="false" aria-label="Save {{ product.name }} to wishlist">♡ Add to Wishlist</button>
+      </div>
       {% if business.whatsapp_number %}
       {% set order_message = "Hello, I am interested in " ~ product.name ~ " (₦" ~ "{:,.0f}".format(product.price) ~ "). Please confirm availability and delivery details." %}
-      <a class="luxury-button luxury-button-gold premium-add-cart" href="https://wa.me/{{ business.whatsapp_number|replace('+','')|replace(' ','')|replace('-','') }}?text={{ order_message|urlencode }}" target="_blank" rel="noopener noreferrer">Enquire on WhatsApp <span aria-hidden="true">↗</span></a>
+      <a class="luxury-button luxury-button-outline premium-add-cart" href="https://wa.me/{{ business.whatsapp_number|replace('+','')|replace(' ','')|replace('-','') }}?text={{ order_message|urlencode }}" target="_blank" rel="noopener noreferrer">Enquire on WhatsApp <span aria-hidden="true">↗</span></a>
       {% else %}<p class="premium-product-description">WhatsApp ordering will be available once the store contact number is configured.</p>{% endif %}
     </div>
   </section>
