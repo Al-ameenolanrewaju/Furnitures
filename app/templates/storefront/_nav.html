@@ -1,7 +1,15 @@
 {% if settings and settings.announcement %}<div class="luxury-announcement">{{ settings.announcement }}</div>{% endif %}
 <nav class="store-nav luxury-nav" aria-label="Main navigation">
   <a class="store-brand luxury-brand" href="{{ url_for('storefront.home') }}" aria-label="{{ business.name }} home">
-    {% if business.logo_url %}<img src="{{ business.logo_url }}" alt="{{ business.name }}">{% else %}<span class="furniture-wordmark">{{ business.name }}</span>{% endif %}
+    {% if business.logo_url %}<img src="{{ business.logo_url }}" alt="{{ business.name }}">{% else %}
+      <span class="furniture-logo-lockup" aria-label="{{ business.name }}">
+        <svg class="furniture-logo-mark" viewBox="0 0 48 48" role="img" aria-hidden="true">
+          <path d="M9 34V17.5c0-2.5 2-4.5 4.5-4.5h21c2.5 0 4.5 2 4.5 4.5V34M9 24h30M13 34v5M35 34v5M16 13V8h16v5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M18 24v10M30 24v10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <span class="furniture-wordmark">{{ business.name }}</span>
+      </span>
+    {% endif %}
   </a>
   <div class="store-menu luxury-menu" id="store-menu">
     <a href="{{ url_for('storefront.home') }}" aria-current="page">Home</a>
