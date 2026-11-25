@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.orm import deferred
 from . import db
 
 def utcnow():
@@ -57,7 +58,7 @@ class Product(TimestampMixin, db.Model):
 class ProductImage(TimestampMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey("product.id"), nullable=False, index=True)
-    image_data = db.Column(db.LargeBinary, nullable=False)
+    image_data = deferred(db.Column(db.LargeBinary, nullable=False))
     mime_type = db.Column(db.String(50), nullable=False)
     alt_text = db.Column(db.String(180))
     position = db.Column(db.Integer, nullable=False, default=0)
