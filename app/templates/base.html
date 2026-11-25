@@ -14,8 +14,6 @@
 <div class="announcement">Thoughtful pieces. Beautifully lived in. <span>Complimentary design advice on every order</span></div>
 <header class="site-header">
 <a class="wordmark" href="{{ url_for('store.home') }}">{{ store_name }}<small>FURNITURE & LIVING</small></a>
-<button class="menu-toggle" aria-label="Open menu" aria-expanded="false">☰</button>
-<nav class="main-nav"><a href="{{ url_for('store.home') }}">Home</a><a href="{{ url_for('store.catalogue') }}">Shop all</a><a href="{{ url_for('store.catalogue', category='living-room') }}">Living</a><a href="{{ url_for('store.catalogue', category='bedroom') }}">Bedroom</a><a href="{{ url_for('store.catalogue', category='dining') }}">Dining</a><a href="{{ url_for('store.catalogue', category='office') }}">Office</a></nav>
 <div class="header-actions"><form action="{{ url_for('store.search') }}" class="search-form"><input name="q" placeholder="Search furniture" aria-label="Search furniture"><button aria-label="Search">⌕</button></form><a class="header-link" href="{{ url_for('store.wishlist') }}">Saved</a><a class="bag-link" href="{{ url_for('store.cart') }}">Bag <span>{{ cart_count }}</span></a></div>
 </header>
 {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-stack">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
