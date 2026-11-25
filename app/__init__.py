@@ -61,8 +61,75 @@ def create_app(config_object=None):
 
     @app.cli.command("seed-demo")
     def seed_demo():
-        """Keep startup compatible without inserting demo catalogue data."""
-        print("Demo seeding is disabled; no sample products or accounts were inserted.")
+        """Create the temporary preview store and a small sample furniture catalogue."""
+        from .utils import slugify
+
+        store_name = os.getenv("STORE_NAME", "Furniture Store").strip()
+        store_slug = slugify(os.getenv("STORE_SLUG", "") or store_name)
+        owner_name = os.getenv("STORE_OWNER_NAME", "Prototype Owner").strip()
+        owner_email = os.getenv("STORE_OWNER_EMAIL", "prototype-owner@example.com").strip().lower()
+        owner_password = os.getenv("STORE_OWNER_PASSWORD", "")
+        if not owner_password or len(owner_password) < 12:
+            raise RuntimeError("Set STORE_OWNER_PASSWORD to a unique password of at least 12 characters.")
+
+        business = models.Business.query.filter_by(slug=store_slug).first()
+        if business is None:
+            business = models.Business(name=store_name, slug=store_slug,
+                description="Furniture catalogue preview. Message us to confirm availability and delivery.",
+                contact_email=owner_email, status="ACTIVE")
+            db.session.add(business)
+            db.session.flush()
+
+        owner = models.User.query.filter_by(email=owner_email).first()
+        if owner is None:
+            owner = models.User(business_id=business.id, name=owner_name,
+                email=owner_email, role="OWNER", active=True)
+            owner.set_password(owner_password)
+            db.session.add(owner)
+        elif owner.business_id != business.id:
+            raise RuntimeError("Preview owner email is assigned to another account.")
+
+        if not models.StoreSettings.query.filter_by(business_id=business.id).first():
+            db.session.add(models.StoreSettings(business_id=business.id,
+                hero_title="Furniture that makes a house feel like home",
+                tagline="Thoughtfully selected pieces for every room",
+                catalogue_title="Explore the collection",
+                about_text="Browse our furniture catalogue and message us to confirm availability, pricing and delivery.",
+                footer_text="Quality furniture for comfortable living."))
+
+        categories = {}
+        for room, name in [("Living Room", "Sofas"), ("Living Room", "Coffee Tables"),
+                           ("Bedroom", "Beds"), ("Dining", "Dining Tables")]:
+            slug = slugify(f"{room}-{name}")
+            category = models.Category.query.filter_by(business_id=business.id, slug=slug).first()
+            if category is None:
+                category = models.Category(business_id=business.id, name=name, slug=slug, gender=room)
+                db.session.add(category)
+                db.session.flush()
+            categories[name] = category
+
+        samples = [
+            ("Modern 3-Seater Sofa", "sofa", "A contemporary three-seater sofa with a comfortable, clean-lined silhouette. Demo listing — confirm availability and final price.", 850000, "Sofas", "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1200"),
+            ("Minimalist Coffee Table", "coffee-table", "A versatile coffee table for modern living spaces. Demo listing — confirm availability and final price.", 220000, "Coffee Tables", "https://images.unsplash.com/photo-1499933374294-4584851497cc?w=1200"),
+            ("Contemporary Upholstered Bed", "upholstered-bed", "A refined upholstered bed frame for a calm, comfortable bedroom. Demo listing — confirm availability and final price.", 690000, "Beds", "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200"),
+            ("Solid Wood Dining Table", "wood-dining-table", "A warm, timeless dining table for everyday meals and gatherings. Demo listing — confirm availability and final price.", 540000, "Dining Tables", "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=1200"),
+        ]
+        for name, slug, description, price, category_name, image_url in samples:
+            product = models.Product.query.filter_by(business_id=business.id, slug=slug).first()
+            if product is None:
+                product = models.Product(business_id=business.id,
+                    category_id=categories[category_name].id, name=name, slug=slug,
+                    description=description, regular_price=price, gender="Unisex",
+                    fashion_type="Ready-to-wear", featured=True, new_arrival=True,
+                    is_published=True, sku=f"DEMO-{slug.upper()}")
+                db.session.add(product)
+                db.session.flush()
+                db.session.add(models.ProductImage(business_id=business.id,
+                    product_id=product.id, url=image_url,
+                    alt_text=f"{name} — illustrative demo image", sort_order=0))
+
+        db.session.commit()
+        print(f"Preview store ready: {store_name}; sample listings are illustrative only.")
 
     @app.cli.command("bootstrap-store")
     def bootstrap_store():
