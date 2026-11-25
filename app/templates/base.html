@@ -10,7 +10,7 @@
 <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
 {% block head %}{% endblock %}
 </head>
-<body class="storefront-body">
+<body class="storefront-body" id="top">
 <header class="site-header">
 <a class="brand-lockup" href="{{ url_for('store.home') }}"><span class="brand-mark" aria-hidden="true">⌂</span><span class="wordmark">{{ store_name }}<small>FURNITURE & LIVING</small></span></a>
 <div class="header-actions">
@@ -21,12 +21,16 @@
 </header>
 {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-stack">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
 <main id="main-content">{% block content %}{% endblock %}</main>
-<footer class="site-footer">
-<div class="footer-main">
-<div class="footer-brand"><a class="brand-lockup" href="{{ url_for('store.home') }}"><span class="brand-mark" aria-hidden="true">⌂</span><span class="wordmark">{{ store_name }}<small>FURNITURE & LIVING</small></span></a><p>Furniture for the way you live.</p></div>
-<div><h4>Explore</h4><a href="{{ url_for('store.catalogue') }}">Shop all furniture</a><a href="{{ url_for('store.wishlist') }}">Saved pieces</a><a href="{{ url_for('store.cart') }}">Shopping bag</a></div>
-<div><h4>Customer care</h4><a href="{{ url_for('store.checkout') }}">Delivery & checkout</a><a href="mailto:hello@example.com">Contact us</a></div>
+<footer class="site-footer reference-footer">
+<div class="footer-brand-row">
+<a class="footer-wordmark" href="{{ url_for('store.home') }}">{{ store_name }}</a>
+<div class="footer-social" aria-label="Social media"><span aria-label="Instagram">◎</span><span aria-label="Facebook">f</span><span aria-label="TikTok">♪</span><span aria-label="X">𝕏</span><span aria-label="Email">✉</span></div>
 </div>
-<div class="footer-bottom"><span>© {{ current_year }} {{ store_name }}. All rights reserved.</span></div>
+<div class="footer-divider"></div>
+<div class="footer-columns">
+<div class="footer-about"><h4>About {{ store_name }}</h4><p>Furniture & living. Thoughtful pieces for everyday spaces.</p></div>
+<div class="footer-links"><h4>Quick Links</h4><a href="{{ url_for('store.home') }}">Home</a><a href="{{ url_for('store.catalogue') }}">Shop all furniture</a><a href="{{ url_for('store.wishlist') }}">Saved pieces</a><a href="{{ url_for('store.cart') }}">Shopping bag</a></div>
+</div>
+<div class="footer-bottom"><span>© {{ current_year }} {{ store_name }} · All rights reserved</span><a href="#top">Back to top ↑</a></div>
 </footer>
 </body></html>
