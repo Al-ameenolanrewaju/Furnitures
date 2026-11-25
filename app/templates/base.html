@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="{% block meta_description %}Considered furniture for the way you live. Discover timeless pieces for every room.{% endblock %}">
+<title>{% block title %}{{ store_name }} — Furniture for living{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+<script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block head %}{% endblock %}
+</head>
+<body>
+<div class="announcement">Thoughtful pieces. Beautifully lived in. <span>Complimentary design advice on every order</span></div>
+<header class="site-header">
+<a class="wordmark" href="{{ url_for('store.home') }}">{{ store_name }}<small>FURNITURE & LIVING</small></a>
+<button class="menu-toggle" aria-label="Open menu" aria-expanded="false">☰</button>
+<nav class="main-nav"><a href="{{ url_for('store.home') }}">Home</a><a href="{{ url_for('store.catalogue') }}">Shop all</a><a href="{{ url_for('store.catalogue', category='living-room') }}">Living</a><a href="{{ url_for('store.catalogue', category='bedroom') }}">Bedroom</a><a href="{{ url_for('store.catalogue', category='dining') }}">Dining</a><a href="{{ url_for('store.catalogue', category='office') }}">Office</a></nav>
+<div class="header-actions"><form action="{{ url_for('store.search') }}" class="search-form"><input name="q" placeholder="Search furniture" aria-label="Search furniture"><button aria-label="Search">⌕</button></form><a class="header-link" href="{{ url_for('store.wishlist') }}">Saved</a><a class="bag-link" href="{{ url_for('store.cart') }}">Bag <span>{{ cart_count }}</span></a></div>
+</header>
+{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-stack">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+<main id="main-content">{% block content %}{% endblock %}</main>
+<footer class="site-footer"><div class="footer-main"><div><a class="wordmark footer-wordmark" href="{{ url_for('store.home') }}">{{ store_name }}<small>FURNITURE & LIVING</small></a><p>Spaces that feel like you.<br>Pieces made to live with.</p></div><div><h4>Explore</h4><a href="{{ url_for('store.catalogue') }}">Shop all</a><a href="{{ url_for('store.wishlist') }}">Saved pieces</a><a href="{{ url_for('store.cart') }}">Shopping bag</a></div><div><h4>Customer care</h4><a href="{{ url_for('store.checkout') }}">Delivery & checkout</a><a href="mailto:hello@example.com">Contact us</a><a href="{{ url_for('auth.login') }}">Account</a></div><div class="footer-note"><span>THE ART OF LIVING WELL</span><p>Good design is not just how a room looks. It is how it makes you feel.</p></div></div><div class="footer-bottom"><span>© {{ current_year }} {{ store_name }}. All rights reserved.</span><span>Designed for everyday living.</span></div></footer>
+</body></html>
