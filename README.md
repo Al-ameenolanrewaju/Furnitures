@@ -1,109 +1,73 @@
-# WhatsApp Clothing Catalogue
+# Furniture Storefront
 
-A simple, single-business clothing catalogue built with Flask. Customers can
-browse products, view photos and available sizes/colours, then send an order
-request directly to the shop's WhatsApp number. Customers do not need accounts,
-and the application does not take payments.
+A Flask-based furniture catalogue and store-management website. Customers can browse furniture, filter collections, save favourites, add items to a cart, and send an order enquiry through WhatsApp. Store owners manage products, categories, product images, variants, inventory, orders, branding, homepage content and store settings from the owner dashboard.
 
-The private dashboard is for one shop owner to manage products, categories,
-images, inventory and store details.
+## Stack
 
-## Local setup (Windows PowerShell)
+- Python and Flask
+- Flask-SQLAlchemy and Flask-Migrate
+- PostgreSQL in production; SQLite for local development and tests
+- Product images and logos stored as binary data in PostgreSQL
+- Gunicorn on Render
 
-```powershell
-py -3 -m venv .venv
-.\\.venv\\Scripts\\Activate.ps1
-python -m pip install -r requirements.txt
-$env:SECRET_KEY = "replace-with-a-random-secret-at-least-32-characters"
-$env:DATABASE_URL = "sqlite:///clothing_store.db"
-$env:COOKIE_SECURE = "false"
-python -m flask --app "app:create_app()" db upgrade
-python -m flask --app "app:create_app()" run
+## Local development
+
+```bash
+python -m venv .venv
+# Activate the virtual environment for your shell
+pip install -r requirements.txt
+cp .env.example .env
 ```
 
-Open `http://127.0.0.1:5000/login` for the owner login. The app requires a
-`SECRET_KEY` of at least 32 characters outside test mode.
-Running `python run.py` loads environment variables from a local `.env` file.
-Keep `.env` private and do not commit it.
+Set a local `SECRET_KEY` (at least 32 characters), use `DATABASE_URL=sqlite:///furniture_store.db`, and set `COOKIE_SECURE=false` for local HTTP. Then run:
 
-## Create the shop and owner account
-
-Run `python -m flask --app "app:create_app()" shell` using the same environment variables,
-then create the single shop and its owner:
-
-```python
-from app import db
-from app.models import Business, User
-
-shop = Business(
-    name="Your Clothing Store",
-    slug="your-shop",
-    description="Your store description",
-    whatsapp_number="2348012345678",
-)
-owner = User(
-    name="Store Owner",
-    email="owner@example.com",
-    role="OWNER",
-)
-owner.set_password("use-a-unique-password-at-least-12-characters")
-shop.users.append(owner)
-db.session.add(shop)
-db.session.commit()
+```bash
+flask --app 'app:create_app()' db upgrade
+flask --app 'app:create_app()' bootstrap-store
+flask --app 'app:create_app()' run
 ```
 
-The app automatically loads the first active business from the database on
-the Render URL and any hostname that is not explicitly mapped to a connected
-custom domain. You do not need to configure a store slug. Keep only one active
-business in the database for this single-shop setup. A connected custom domain
-can still point to the shop.
+The bootstrap command requires `STORE_NAME`, `STORE_OWNER_NAME`, `STORE_OWNER_EMAIL`, and a unique `STORE_OWNER_PASSWORD` of at least 12 characters. Optional values are `STORE_SLUG`, `STORE_DESCRIPTION`, `STORE_CONTACT_EMAIL`, and `STORE_WHATSAPP_NUMBER`. It creates the store, owner, settings, and starter furniture categories. It is safe to rerun after successful setup and does not reset an existing owner's password.
 
-## Configuration
+## Render deployment
 
-| Variable | Purpose |
+Create a Render Web Service from this repository:
+
+- Branch: `main`
+- Runtime: Python
+- Build command: `pip install -r requirements.txt`
+- Start command: `flask --app 'app:create_app()' db upgrade && gunicorn 'app:create_app()'`
+- Add a persistent PostgreSQL database and use its **internal** connection URL for `DATABASE_URL`.
+
+Required environment variables:
+
+| Variable | Value |
 |---|---|
-| `SECRET_KEY` | Required outside testing; at least 32 random characters |
-| `DATABASE_URL` | PostgreSQL in production; SQLite for local development |
-| `APP_ENV` | Set to `production` on Render to enforce production database requirements |
-| `COOKIE_SECURE` | Keep `true` on HTTPS; set `false` only for local HTTP |
-| `UPLOAD_FOLDER` | Legacy image directory used only to serve images uploaded by older versions |
-| `RENDER_API_KEY`, `RENDER_SERVICE_ID` | Optional existing custom-domain integration |
+| `APP_ENV` | `production` |
+| `SECRET_KEY` | Unique random secret of at least 32 characters |
+| `DATABASE_URL` | PostgreSQL connection URL |
+| `COOKIE_SECURE` | `true` |
 
-New product images and business logos validate JPEG, PNG and WebP signatures and are stored as binary data in PostgreSQL. They remain available across Render redeploys without Cloudinary or a persistent image disk. The legacy `/media/<filename>` route remains available for images uploaded by older versions; those old files still require their original persistent disk until re-uploaded.
+Provision the store once after the database is available by running `flask --app 'app:create_app()' bootstrap-store` in the Render Shell with the required `STORE_*` environment variables set. Do not use the legacy `bootstrap-sulex` command for this furniture installation. The application exposes `GET /health` for health checks.
 
-## Deploy to Render
+## Images and persistence
 
-1. Connect this repository to a Render Web Service.
-2. Build command: `pip install -r requirements.txt`.
-3. Start command: `gunicorn 'app:create_app()'`.
-4. Configure `APP_ENV=production`, `SECRET_KEY`, `DATABASE_URL` and `COOKIE_SECURE=true`.
-5. Run `python -m flask --app "app:create_app()" db upgrade` once from the Render shell.
-6. Create the shop and owner account with the Flask shell if they do not
-   already exist.
-7. Visit `/health` to check application and database readiness.
+New product images and store logos are validated and stored in PostgreSQL, so they survive application redeploys without Cloudinary or a persistent image disk. Legacy images served from `/media/<filename>` still depend on their original file storage and should be re-uploaded through the dashboard if they need to be retained.
 
-The repository Procfile also sets the web start command to
-`gunicorn 'app:create_app()'`. If the Render dashboard has a custom Start
-Command saved, it must match this command because dashboard settings override
-the Procfile.
+## Storefront functionality
 
-## Customer ordering
-
-1. Customer opens the catalogue and chooses a product.
-2. Customer selects an available size, colour and quantity.
-3. The **Order on WhatsApp** link opens a message addressed to the shop,
-   containing the selected product, variant, quantity, price and product URL.
-4. The shop owner confirms availability, delivery and payment directly with
-   the customer in WhatsApp.
-
-The catalogue does not reserve stock or deduct inventory when a customer opens
-WhatsApp. The owner updates inventory from the dashboard after handling the
-order. Existing legacy cart/order routes and database tables are retained during
-this simplification to avoid destructive database changes; they are no longer
-part of the customer-facing navigation or product-order flow.
+- Furniture homepage and collection/category browsing
+- Product details, variants and availability
+- Cart and wishlist drawers
+- WhatsApp order enquiry
+- Responsive storefront navigation
+- Owner dashboard for catalogue, categories, images, variants, inventory, orders and store content
+- Platform administration for business and domain management
 
 ## Tests
 
-```powershell
+```bash
 python -m pytest -q
 ```
+
+Run the test suite before deploying changes to production.
