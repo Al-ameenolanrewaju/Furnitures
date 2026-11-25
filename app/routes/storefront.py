@@ -81,7 +81,8 @@ def home():
     products = public_products(business).order_by(func.random()).limit(4).all()
     settings, categories = storefront_context(business)
     return render_template(
-        "storefront/cart.html", business=business, settings=settings, categories=categories,
+        "storefront/home.html", business=business, featured=products,
+        settings=settings, categories=categories,
     )
 
 
@@ -166,6 +167,5 @@ def cart():
     products = public_products(business).order_by(Product.created_at.desc(), Product.id.desc()).limit(4).all()
     settings, categories = storefront_context(business)
     return render_template(
-        "storefront/home.html", business=business, featured=products,
-        settings=settings, categories=categories,
+        "storefront/cart.html", business=business, settings=settings, categories=categories,
     )
