@@ -1,9 +1,7 @@
-from datetime import datetime, timedelta
 from decimal import Decimal
 import re
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
-from sqlalchemy import func
 from .. import db
 from ..models import Product, Category, ProductVariant, ProductImage, Order, OrderItem
 
@@ -20,39 +18,14 @@ def protect():
 
 @bp.get("/")
 def dashboard():
-    today = datetime.utcnow().date()
-    week_start = today - timedelta(days=6)
-    active_products = Product.query.filter_by(is_active=True)
-    low_stock = active_products.filter(Product.stock <= 5).order_by(Product.stock.asc(), Product.name.asc()).limit(8).all()
-    revenue = db.session.query(func.coalesce(func.sum(Order.total), 0)).filter(Order.status != "CANCELLED").scalar() or Decimal("0")
-    recent_orders = Order.query.order_by(Order.created_at.desc()).limit(8).all()
-    daily_sales = []
-    for offset in range(7):
-        day = week_start + timedelta(days=offset)
-        start = datetime.combine(day, datetime.min.time())
-        end = start + timedelta(days=1)
-        day_orders = Order.query.filter(Order.created_at >= start, Order.created_at < end, Order.status != "CANCELLED")
-        daily_sales.append({
-            "label": day.strftime("%a"),
-            "count": day_orders.count(),
-            "revenue": float(day_orders.with_entities(func.coalesce(func.sum(Order.total), 0)).scalar() or 0),
-        })
-    status_counts = {
-        status: Order.query.filter_by(status=status).count()
-        for status in ("PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED")
-    }
     return render_template(
         "admin/dashboard.html",
         product_count=Product.query.filter_by(is_active=True).count(),
+        category_count=Category.query.count(),
         order_count=Order.query.count(),
         pending_count=Order.query.filter_by(status="PENDING").count(),
-        category_count=Category.query.count(),
-        revenue=revenue,
-        recent_orders=recent_orders,
-        low_stock=low_stock,
-        low_stock_count=active_products.filter(Product.stock <= 5).count(),
-        daily_sales=daily_sales,
-        status_counts=status_counts,
+        low_stock=Product.query.filter(Product.is_active.is_(True), Product.stock <= 5)
+            .order_by(Product.stock.asc(), Product.name.asc()).limit(5).all(),
     )
 
 @bp.route("/products", methods=["GET", "POST"])
