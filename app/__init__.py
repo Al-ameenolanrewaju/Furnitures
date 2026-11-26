@@ -8,6 +8,7 @@ from flask_wtf import CSRFProtect
 from flask_wtf.csrf import CSRFError
 from werkzeug.utils import safe_join
 from sqlalchemy.orm import undefer
+from sqlalchemy import event
 
 
 db = SQLAlchemy()
@@ -27,7 +28,7 @@ def create_app(config_object=None):
     app.config.update(
         SECRET_KEY=os.getenv("SECRET_KEY"),
         SQLALCHEMY_DATABASE_URI=database_url,
-        SQLALCHEMY_ENGINE_OPTIONS=({"connect_args": {"options": "-csearch_path=furniture"}} if database_url.startswith(("postgresql://", "postgresql+psycopg://")) else {}),
+        SQLALCHEMY_ENGINE_OPTIONS={},
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         WTF_CSRF_ENABLED=True,
         WTF_CSRF_TIME_LIMIT=86400,
@@ -47,6 +48,17 @@ def create_app(config_object=None):
             raise RuntimeError("Configure DATABASE_URL with a persistent PostgreSQL database for production.")
 
     db.init_app(app)
+    if database_url.startswith(("postgresql://", "postgresql+psycopg://")):
+        # Supabase transaction poolers may discard session-level settings.
+        # Set the schema for every transaction so pooled connections cannot
+        # leak the public schema or another application's search_path.
+        with app.app_context():
+            engine = db.engine
+
+        @event.listens_for(engine, "begin")
+        def set_furniture_search_path(connection):
+            connection.exec_driver_sql("SET LOCAL search_path TO furniture")
+
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
