@@ -164,7 +164,7 @@ def create_app(config_object=None):
             ("Linea Media TV Console", "Living Room", "TV Consoles", 420000, "A streamlined media console with practical storage for everyday essentials.", "photo-1600210492486-724fe5c67fb0"),
             ("Noma Oak Side Table", "Living Room", "Side Tables", 165000, "A compact side table for lamps, books and small living-room accessories.", "photo-1493663284031-b7e3aefcae8e"),
             ("Haven Upholstered King Bed", "Bedroom", "Beds", 980000, "A soft upholstered king bed frame with a calm, modern silhouette.", "photo-1505693416388-ac5ce068fe85"),
-            ("Alder Sliding Door Wardrobe", "Bedroom", "Wardrobes", 1150000, "A spacious wardrobe concept with a clean exterior and generous storage.", "photo- спальня"),
+            ("Alder Sliding Door Wardrobe", "Bedroom", "Wardrobes", 1150000, "A spacious wardrobe concept with a clean exterior and generous storage.", "photo-1616486338812-3dadae4b4ace"),
             ("Milo Bedside Cabinet", "Bedroom", "Bedside Tables", 185000, "A practical bedside cabinet with room for nighttime essentials.", "photo-1631679706909-1844bbd07221"),
             ("Solace Bedroom Dresser", "Bedroom", "Dressers", 395000, "A contemporary dresser designed to bring useful storage to the bedroom.", "photo-1616486338812-3dadae4b4ace"),
             ("Cedar 6-Seater Dining Table", "Dining", "Dining Tables", 790000, "A welcoming dining table with room for family meals and shared occasions.", "photo-1600210492486-724fe5c67fb0"),
