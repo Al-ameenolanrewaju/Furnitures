@@ -99,7 +99,7 @@ def run_migrations_online():
 
     with connectable.connect() as connection:
         # Keep all unqualified migration DDL inside this application's schema.
-        connection.exec_driver_sql("SET LOCAL search_path TO furniture")
+        # The SQLAlchemy engine begin listener sets transaction-local search_path.
         context.configure(
             connection=connection,
             target_metadata=get_metadata(),
