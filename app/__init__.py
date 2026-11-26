@@ -147,6 +147,91 @@ def create_app(config_object=None):
         db.session.commit()
         print(f"Preview store ready: {store_name}; sample listings are illustrative only.")
 
+    @app.cli.command("seed-oade-catalogue")
+    def seed_oade_catalogue():
+        """Add an idempotent set of 20 illustrative products to Oadé Living only."""
+        from .utils import slugify
+
+        business = models.Business.query.filter_by(slug="oade-living", status="ACTIVE").first()
+        if business is None:
+            raise RuntimeError("Oadé Living was not found or is not active; no products were added.")
+
+        # Product names, category groups, sample NGN prices and illustrative Unsplash photos.
+        catalogue = [
+            ("Lagos Modular 3-Seater Sofa", "Living Room", "Sofas", 1250000, "A generously proportioned modular sofa with clean lines and comfortable cushions.", "photo-1555041469-a586c61ea9bc"),
+            ("Oslo Accent Armchair", "Living Room", "Armchairs", 485000, "A sculptural accent chair designed for reading corners and relaxed seating.", "photo-1567538096630-e0c55bd6374c"),
+            ("Aurelia Round Coffee Table", "Living Room", "Coffee Tables", 295000, "A round centre table with a refined profile for contemporary living rooms.", "photo-1499933374294-4584851497cc"),
+            ("Linea Media TV Console", "Living Room", "TV Consoles", 420000, "A streamlined media console with practical storage for everyday essentials.", "photo-1600210492486-724fe5c67fb0"),
+            ("Noma Oak Side Table", "Living Room", "Side Tables", 165000, "A compact side table for lamps, books and small living-room accessories.", "photo-1493663284031-b7e3aefcae8e"),
+            ("Haven Upholstered King Bed", "Bedroom", "Beds", 980000, "A soft upholstered king bed frame with a calm, modern silhouette.", "photo-1505693416388-ac5ce068fe85"),
+            ("Alder Sliding Door Wardrobe", "Bedroom", "Wardrobes", 1150000, "A spacious wardrobe concept with a clean exterior and generous storage.", "photo- спальня"),
+            ("Milo Bedside Cabinet", "Bedroom", "Bedside Tables", 185000, "A practical bedside cabinet with room for nighttime essentials.", "photo-1631679706909-1844bbd07221"),
+            ("Solace Bedroom Dresser", "Bedroom", "Dressers", 395000, "A contemporary dresser designed to bring useful storage to the bedroom.", "photo-1616486338812-3dadae4b4ace"),
+            ("Cedar 6-Seater Dining Table", "Dining", "Dining Tables", 790000, "A welcoming dining table with room for family meals and shared occasions.", "photo-1600210492486-724fe5c67fb0"),
+            ("Marlow Dining Chair", "Dining", "Dining Chairs", 145000, "A supportive dining chair with a timeless, versatile design.", "photo-1617806118233-18e1de247200"),
+            ("Sienna Storage Cabinet", "Dining", "Cabinets", 365000, "A versatile cabinet for tableware, linens and dining-room storage.", "photo-1616486029423-aaa4789e8c9a"),
+            ("Forma Executive Office Desk", "Office", "Office Desks", 560000, "A generous work surface for a focused home or professional workspace.", "photo-1497366754035-f200968a6e72"),
+            ("Ergo Mesh Office Chair", "Office", "Office Chairs", 325000, "A contemporary office chair with a breathable mesh-inspired design.", "photo-1580480055273-228ff5388ef8"),
+            ("Atlas Open Bookcase", "Office", "Bookcases", 285000, "An open bookcase for books, framed photos and carefully chosen objects.", "photo-1507652313519-d4e9174996dd"),
+            ("Kora Multi-Purpose Storage Unit", "Office", "Storage", 345000, "A flexible storage unit for keeping work and household essentials organised.", "photo-1595428774223-ef52624120d2"),
+            ("Cove 2-Seater Loveseat", "Living Room", "Sofas", 795000, "A compact two-seater sofa suited to apartments and smaller living spaces.", "photo-1550254478-ead40cc54513"),
+            ("Amani Nesting Coffee Tables", "Living Room", "Coffee Tables", 255000, "A pair of nesting tables that offer flexible surface space when needed.", "photo-1499933374294-4584851497cc"),
+            ("Monarch Queen Bed Frame", "Bedroom", "Beds", 825000, "A simple queen bed frame designed to complement a range of bedroom styles.", "photo-1505693416388-ac5ce068fe85"),
+            ("Harper 4-Seater Dining Set", "Dining", "Dining Tables", 920000, "A coordinated dining table and chair set for everyday family dining.", "photo-1600607687939-ce8a6c25118c"),
+        ]
+
+        categories = {
+            category.name: category
+            for category in models.Category.query.filter_by(business_id=business.id).all()
+        }
+        created = 0
+        for name, room, category_name, price, description, photo_id in catalogue:
+            slug = slugify(name)
+            existing = models.Product.query.filter_by(business_id=business.id, slug=slug).first()
+            if existing:
+                continue
+            category_slug = slugify(f"{room}-{category_name}")
+            category = models.Category.query.filter_by(
+                business_id=business.id, slug=category_slug
+            ).first()
+            if category is None:
+                category = models.Category(
+                    business_id=business.id,
+                    name=category_name,
+                    slug=category_slug,
+                    gender=room,
+                )
+                db.session.add(category)
+                db.session.flush()
+            product = models.Product(
+                business_id=business.id,
+                category_id=category.id,
+                name=name,
+                slug=slug,
+                description=description + " Illustrative catalogue listing; confirm actual specifications, availability and final price before ordering.",
+                regular_price=price,
+                gender="Unisex",
+                fashion_type="Furniture",
+                featured=created < 4,
+                new_arrival=True,
+                is_published=True,
+                sku=f"OADE-{slug.upper()[:80]}",
+            )
+            db.session.add(product)
+            db.session.flush()
+            db.session.add(models.ProductImage(
+                business_id=business.id,
+                product_id=product.id,
+                url=f"https://images.unsplash.com/{photo_id}?auto=format&fit=crop&w=1200&q=85",
+                alt_text=f"{name} — illustrative product image",
+                sort_order=0,
+            ))
+            created += 1
+
+        db.session.commit()
+        total = models.Product.query.filter_by(business_id=business.id).count()
+        print(f"Oadé Living catalogue seed complete: {created} new products added; {total} products total.")
+
     @app.cli.command("bootstrap-store")
     def bootstrap_store():
         """Create one independent client store from STORE_* environment variables."""
